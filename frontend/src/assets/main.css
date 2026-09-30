@@ -1,35 +1,135 @@
 @import './base.css';
 
+/* GAMBA theme: always dark, gold accent */
+:root {
+  color-scheme: dark;
+
+  --gold: #f0a500;
+  --gold-hover: #ffbb22;
+  --font-serif: Georgia, 'Times New Roman', serif;
+
+  --color-background: #000000;
+  --color-background-soft: #1c1c1c;
+  --color-background-mute: #2a2a2a;
+
+  --color-border: #3a3a3a;
+  --color-border-hover: #5a5a5a;
+
+  --color-heading: #ffffff;
+  --color-text: #d8d8d8;
+}
+
 #app {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 0 2rem 2rem;
   font-weight: normal;
+  overflow-x: hidden;
 }
 
-a,
-.green {
+a {
   text-decoration: none;
-  color: hsla(160, 100%, 37%, 1);
-  transition: 0.4s;
-  padding: 3px;
+  color: var(--gold);
+  transition: color 0.2s;
 }
 
-@media (hover: hover) {
-  a:hover {
-    background-color: hsla(160, 100%, 37%, 0.2);
-  }
+.btn {
+  display: inline-block;
+  padding: 0.6rem 1.4rem;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  font: inherit;
+  font-family: var(--font-serif);
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition:
+    background-color 0.2s,
+    color 0.2s,
+    border-color 0.2s;
 }
 
-@media (min-width: 1024px) {
-  body {
-    display: flex;
-    place-items: center;
-  }
+.btn-small {
+  padding: 0.2rem 1.1rem;
+  font-size: 0.75rem;
+}
 
-  #app {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    padding: 0 2rem;
-  }
+.btn-block {
+  width: 100%;
+}
+
+.btn-gold {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: #000;
+}
+
+.btn-gold:hover {
+  background: var(--gold-hover);
+  border-color: var(--gold-hover);
+}
+
+.btn-outline {
+  background: transparent;
+  border-color: var(--color-heading);
+  color: var(--color-heading);
+}
+
+.btn-outline:hover,
+.btn-outline-gold:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.btn-outline-gold {
+  background: transparent;
+  border-color: var(--gold);
+  color: var(--color-heading);
+}
+
+input:not([type='checkbox']) {
+  width: 100%;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  background: var(--color-background-soft);
+  color: var(--color-heading);
+  font: inherit;
+}
+
+input:focus-visible,
+.btn:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 1px;
+}
+
+input[type='checkbox'] {
+  accent-color: var(--gold);
+}
+
+.btn-danger {
+  background: transparent;
+  border-color: #ff6b6b;
+  color: #ff6b6b;
+}
+
+.btn-danger:hover {
+  background: #ff6b6b;
+  color: #000;
+}
+
+input:read-only {
+  color: var(--color-text);
+  opacity: 0.7;
+}
+
+.error {
+  color: #ff6b6b;
+  font-size: 0.8rem;
+}
+
+.success {
+  color: #5fd38d;
+  font-size: 0.9rem;
 }
