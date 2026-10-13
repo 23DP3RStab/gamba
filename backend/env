@@ -1,0 +1,10 @@
+# Database Credentials
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=postgres
+DB_USER=postgres
+DB_PASSWORD=Zivis3434
+
+# Security / JWT (useful for later)
+JWT_SECRET=your_super_secret_signing_key_here
+JWT_EXPIRATION_MS=86400000
