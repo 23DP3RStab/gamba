@@ -3,6 +3,7 @@ import HomeView from './views/HomeView.vue'
 import RegisterView from './views/RegisterView.vue'
 import ProfileView from './views/ProfileView.vue'
 import RouletteView from './views/RouletteView.vue'
+import PiggiesView from './views/PiggiesView.vue'
 import ComingSoonView from './views/ComingSoonView.vue'
 
 export default createRouter({
@@ -12,6 +13,7 @@ export default createRouter({
     { path: '/register', component: RegisterView },
     { path: '/profile', component: ProfileView },
     { path: '/roulette', component: RouletteView },
+    { path: '/piggies', component: PiggiesView },
     { path: '/jackpots', component: ComingSoonView, meta: { title: 'Jackpots' } },
     { path: '/offers', component: ComingSoonView, meta: { title: 'Offers' } },
     { path: '/wallet', component: ComingSoonView, meta: { title: 'Wallet' } },

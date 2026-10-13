@@ -5,27 +5,13 @@ import RouletteTable from '../components/RouletteTable.vue'
 import CasinoChip from '../components/CasinoChip.vue'
 import { BETS, POCKETS, colorOf, randomPocketIndex, settle } from '../roulette'
 import { formatMoney } from '../format'
+import { START_BALANCE, balance, setBalance, resetBalance as resetStoredBalance } from '../balance'
 
 const CHIPS = [1, 5, 10, 25, 100, 500]
-const START_BALANCE = 100000
-const BALANCE_KEY = 'gamba.roulette.balance'
 const RECENT_COUNT = 12
 
-// Demo balance, kept in this browser only. It changes when a spin is settled;
-// chips on the table are only reserved against it until then.
-function loadBalance() {
-  const stored = Number(localStorage.getItem(BALANCE_KEY))
-  return Number.isFinite(stored) && localStorage.getItem(BALANCE_KEY) !== null
-    ? stored
-    : START_BALANCE
-}
-
-const balance = ref(loadBalance())
-function setBalance(value) {
-  balance.value = value
-  localStorage.setItem(BALANCE_KEY, String(value))
-}
-
+// The balance changes when a spin is settled; chips on the table are only
+// reserved against it until then.
 const wheel = ref(null)
 const chip = ref(5)
 const placed = reactive({}) // { betKey: amount }
@@ -102,7 +88,7 @@ async function spin() {
 }
 
 function resetBalance() {
-  setBalance(START_BALANCE)
+  resetStoredBalance()
   message.value = `Balance reset to ${formatMoney(START_BALANCE)}`
 }
 
