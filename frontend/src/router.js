@@ -2,9 +2,11 @@ import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from './views/HomeView.vue'
 import RegisterView from './views/RegisterView.vue'
 import ProfileView from './views/ProfileView.vue'
-import RouletteView from './views/RouletteView.vue'
-import PiggiesView from './views/PiggiesView.vue'
 import ComingSoonView from './views/ComingSoonView.vue'
+
+// Game pages (and the PixiJS engine they use) only download when someone opens them
+const RouletteView = () => import('./views/RouletteView.vue')
+const PiggiesView = () => import('./views/PiggiesView.vue')
 
 export default createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),

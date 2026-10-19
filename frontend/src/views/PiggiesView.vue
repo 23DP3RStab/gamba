@@ -1,7 +1,6 @@
 <script setup>
-import { computed, onBeforeUnmount, ref } from 'vue'
-import PiggyHouse from '../components/PiggyHouse.vue'
-import BigBadWolf from '../components/BigBadWolf.vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import PiggiesScene from '../components/PiggiesScene.vue'
 import CasinoChip from '../components/CasinoChip.vue'
 import { HOUSES, blowSucceeds } from '../piggies'
 import { balance, setBalance, resetBalance as resetStoredBalance, START_BALANCE } from '../balance'
@@ -23,10 +22,14 @@ const level = ref(0) // houses blown down this round
 const round = ref(0) // bumps each round so the houses are rebuilt
 const wolfAt = ref(0) // index of the house the wolf stands at
 const puffing = ref(false)
+const walking = ref(false)
 const houseStates = ref(HOUSES.map(() => 'standing')) // 'standing' | 'fallen' | 'held'
+const banner = ref(null) // latest moment for the scene banner
+let bannerId = 0
 const message = ref('')
 
 const playing = computed(() => phase.value === 'blowing' || phase.value === 'decide')
+const deciding = computed(() => phase.value === 'decide')
 const betAmount = computed(() => {
   const n = Number(bet.value)
   return Number.isFinite(n) && n > 0 ? cents(n) : 0
@@ -80,7 +83,9 @@ async function attack(index) {
   phase.value = 'blowing'
   if (wolfAt.value !== index) {
     wolfAt.value = index
+    walking.value = true
     await sleep(WALK_MS)
+    walking.value = false
   }
   puffing.value = true
   await sleep(PUFF_MS)
@@ -88,6 +93,11 @@ async function attack(index) {
 
   const fell = blowSucceeds(index)
   houseStates.value[index] = fell ? 'fallen' : 'held'
+  const last = index === HOUSES.length - 1
+  showBanner(!fell ? 'held' : last ? 'won' : 'fell', {
+    multiplier: HOUSES[index].multiplier,
+    amount: stake.value * HOUSES[index].multiplier,
+  })
   await sleep(FALL_MS)
 
   if (!fell) {
@@ -110,17 +120,52 @@ function payOut(endPhase) {
 }
 
 function cashOut() {
-  if (phase.value === 'decide') payOut('cashed')
+  if (phase.value !== 'decide') return
+  showBanner('cashed', { amount: current.value })
+  payOut('cashed')
 }
 
 function next() {
   if (phase.value === 'decide') attack(level.value)
 }
 
+function showBanner(kind, details) {
+  banner.value = { id: ++bannerId, kind, ...details }
+}
+
 function resetBalance() {
   resetStoredBalance()
   message.value = `Balance reset to ${formatMoney(START_BALANCE)}`
 }
+
+// Animated number that counts up to `source` (jumps straight down, or when motion is reduced)
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+function countUp(source) {
+  const shown = ref(source())
+  let frame = null
+  watch(source, (to) => {
+    cancelAnimationFrame(frame)
+    const from = shown.value
+    if (reducedMotion || to <= from) {
+      shown.value = to
+      return
+    }
+    const startedAt = performance.now()
+    const tick = (now) => {
+      const t = Math.min((now - startedAt) / 600, 1)
+      shown.value = cents(from + (to - from) * (1 - (1 - t) ** 3))
+      if (t < 1) frame = requestAnimationFrame(tick)
+    }
+    frame = requestAnimationFrame(tick)
+  })
+  onBeforeUnmount(() => cancelAnimationFrame(frame))
+  return shown
+}
+
+const inPlayShown = countUp(() => (playing.value ? current.value : 0))
+const winShown = countUp(() =>
+  ['decide', 'won', 'cashed'].includes(phase.value) ? current.value : 0,
+)
 
 let gone = false
 onBeforeUnmount(() => {
@@ -144,37 +189,16 @@ function rowClass(i) {
       <p class="subtitle">and the Big Bad Wolf</p>
     </header>
 
-    <div class="board">
-      <div class="scene" :style="{ '--target': wolfAt }">
-        <div class="sun" aria-hidden="true"></div>
-        <div class="cloud c1" aria-hidden="true"></div>
-        <div class="cloud c2" aria-hidden="true"></div>
-
-        <div class="houses">
-          <div v-for="(house, i) in HOUSES" :key="house.key" class="slot">
-            <PiggyHouse
-              :key="`${house.key}-${round}`"
-              :kind="house.key"
-              :state="houseStates[i]"
-              :shaking="puffing && wolfAt === i"
-            />
-          </div>
-        </div>
-
-        <div class="wolf-wrap">
-          <BigBadWolf :puffing="puffing" :beaten="phase === 'lost'" />
-        </div>
-
-        <div class="ground"></div>
-      </div>
-
-      <ol class="house-labels">
-        <li v-for="(house, i) in HOUSES" :key="house.key" :class="rowClass(i)">
-          <span class="label-name">{{ house.label }}</span>
-          <span class="label-mult">×{{ house.multiplier.toLocaleString('lv-LV') }}</span>
-        </li>
-      </ol>
-    </div>
+    <PiggiesScene
+      :house-states="houseStates"
+      :round="round"
+      :wolf-at="wolfAt"
+      :puffing="puffing"
+      :walking="walking"
+      :level="level"
+      :phase="phase"
+      :banner="banner"
+    />
 
     <div class="lower">
       <div class="main-col">
@@ -186,7 +210,7 @@ function rowClass(i) {
           <template v-else-if="phase === 'decide'">
             <p class="success big">
               The {{ HOUSES[level - 1].label.toLowerCase() }} fell! You have
-              {{ formatMoney(current) }}
+              {{ formatMoney(winShown) }}
             </p>
             <p class="muted">
               Cash out now, or send the wolf to the {{ nextHouse.label.toLowerCase() }}
@@ -195,24 +219,24 @@ function rowClass(i) {
             </p>
           </template>
           <p v-else-if="phase === 'won'" class="success big">
-            All three houses blown down! You won {{ formatMoney(current) }}
+            All three houses blown down! You won {{ formatMoney(winShown) }}
           </p>
           <p v-else-if="phase === 'cashed'" class="success big">
-            You cashed out {{ formatMoney(current) }}
+            You cashed out {{ formatMoney(winShown) }}
           </p>
           <p v-else-if="phase === 'lost'" class="lost big">
             The {{ target.label.toLowerCase() }} held! You lost {{ formatMoney(stake) }}
           </p>
           <p v-else class="muted">
-            Place a bet and let the wolf huff and puff. Every house he blows down doubles your
-            money; if one stands, you lose it all. Cash out whenever you like.
+            Place a bet and let the wolf huff and puff. Each house he blows down multiplies your
+            bet: ×2, ×5, then ×16,67. If one stands, you lose it. Cash out whenever you like.
           </p>
         </div>
 
-        <div class="card controls">
+        <div class="card controls" :class="{ deciding }">
           <template v-if="phase === 'decide'">
             <div class="decide">
-              <button type="button" class="btn btn-gold action" @click="cashOut">
+              <button type="button" class="btn btn-gold action cash-out" @click="cashOut">
                 Cash out {{ formatMoney(current) }}
               </button>
               <button type="button" class="btn btn-outline-gold action" @click="next">
@@ -285,7 +309,7 @@ function rowClass(i) {
           </div>
           <div>
             <span class="stat-label">{{ playing ? 'In play' : 'Bet' }}</span>
-            <span class="stat-value">{{ formatMoney(playing ? current : betAmount) }}</span>
+            <span class="stat-value">{{ formatMoney(playing ? inPlayShown : betAmount) }}</span>
           </div>
         </div>
 
@@ -340,133 +364,6 @@ function rowClass(i) {
   text-transform: uppercase;
   letter-spacing: 0.25em;
   opacity: 0.7;
-}
-
-/* Scene: the wolf's lane on the left, then one column per house */
-.board {
-  --lane: 16%;
-  --wolf-w: 15%;
-  width: 100%;
-  max-width: 980px;
-  margin: 0 auto;
-}
-
-.scene {
-  position: relative;
-  overflow: hidden;
-  border: 1px solid rgba(240, 165, 0, 0.35);
-  border-radius: 12px 12px 0 0;
-  background: linear-gradient(180deg, #0d1b33 0%, #24406b 55%, #3e5f86 100%);
-}
-
-.sun {
-  position: absolute;
-  top: 9%;
-  right: 6%;
-  width: 7%;
-  aspect-ratio: 1;
-  border-radius: 50%;
-  background: #f6e7b0;
-  box-shadow: 0 0 30px rgba(246, 231, 176, 0.55);
-}
-
-.cloud {
-  position: absolute;
-  height: 7%;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.12);
-}
-
-.c1 {
-  top: 12%;
-  left: 22%;
-  width: 16%;
-}
-
-.c2 {
-  top: 22%;
-  left: 52%;
-  width: 11%;
-}
-
-.houses {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  align-items: end;
-  margin-left: var(--lane);
-  padding-top: 4.5rem;
-}
-
-.slot {
-  padding: 0 14%;
-}
-
-.wolf-wrap {
-  position: absolute;
-  z-index: 2;
-  bottom: 1.4rem;
-  left: calc(var(--lane) + (100% - var(--lane)) * var(--target) / 3 - var(--wolf-w) + 3%);
-  width: var(--wolf-w);
-  transition: left 0.7s ease-in-out;
-}
-
-.ground {
-  height: 1.6rem;
-  margin-top: -0.2rem;
-  background: linear-gradient(180deg, #2f6b34, #1c4721);
-  border-top: 2px solid #3f8a45;
-}
-
-.house-labels {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  margin: 0;
-  padding: 0.55rem 0 0.55rem var(--lane);
-  list-style: none;
-  border: 1px solid rgba(240, 165, 0, 0.35);
-  border-top: none;
-  border-radius: 0 0 12px 12px;
-  background: linear-gradient(180deg, #121212, #070707);
-}
-
-.house-labels li {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  font-size: 0.8rem;
-  opacity: 0.75;
-  transition: color 0.3s, opacity 0.3s;
-}
-
-.label-name {
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.label-mult {
-  font-family: var(--font-serif);
-  font-size: 1.1rem;
-  color: var(--gold);
-}
-
-.house-labels .next,
-.house-labels .done,
-.house-labels .failed {
-  opacity: 1;
-}
-
-.house-labels .next .label-name {
-  color: var(--gold);
-}
-
-.house-labels .done .label-name {
-  color: #5fd38d;
-}
-
-.house-labels .failed .label-name {
-  color: #ff6b6b;
 }
 
 /* Status, controls and side panel */
@@ -537,6 +434,30 @@ function rowClass(i) {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  transition: border-color 0.3s;
+}
+
+/* Cash out or carry on: make the choice stand out */
+.controls.deciding {
+  border-color: var(--gold);
+  animation: glow 1.6s ease-in-out infinite;
+}
+
+@keyframes glow {
+  50% {
+    box-shadow: 0 0 22px rgba(240, 165, 0, 0.45);
+  }
+}
+
+.cash-out {
+  animation: pulse-btn 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse-btn {
+  50% {
+    transform: scale(1.03);
+    box-shadow: 0 0 16px rgba(240, 165, 0, 0.7);
+  }
 }
 
 .bet-row {
@@ -690,19 +611,6 @@ function rowClass(i) {
     font-size: 1.8rem;
   }
 
-  .board {
-    --lane: 18%;
-    --wolf-w: 18%;
-  }
-
-  .houses {
-    padding-top: 2.5rem;
-  }
-
-  .slot {
-    padding: 0 4%;
-  }
-
   .chips {
     gap: 0.4rem;
   }
@@ -711,18 +619,16 @@ function rowClass(i) {
     --size: 2.4rem !important;
   }
 
-  .house-labels li {
-    font-size: 0.65rem;
-  }
-
   .decide {
     grid-template-columns: 1fr;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .wolf-wrap {
-    transition: none;
+  .controls.deciding,
+  .cash-out,
+  .huff {
+    animation: none;
   }
 }
 </style>
