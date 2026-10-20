@@ -1,5 +1,5 @@
 <script setup>
-import { reactive } from 'vue'
+import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { register, loginOpen } from '../auth'
 import { rules as sharedRules } from '../validation'
@@ -17,6 +17,7 @@ const form = reactive({
   terms: false,
 })
 const errors = reactive({})
+const submitting = ref(false)
 
 const rules = {
   ...sharedRules,
@@ -29,14 +30,15 @@ function validate(field) {
   return !errors[field]
 }
 
-function onSubmit() {
+async function onSubmit() {
   const valid = Object.keys(rules)
     .map(validate)
     .every(Boolean)
   if (!valid) return
 
+  submitting.value = true
   try {
-    register({
+    await register({
       firstName: form.firstName.trim(),
       lastName: form.lastName.trim(),
       birthDate: form.birthDate,
@@ -46,7 +48,11 @@ function onSubmit() {
     })
     router.push('/')
   } catch (e) {
-    errors[e.field ?? 'terms'] = e.message
+    // Field errors go next to their fields; anything else above the Join button
+    if (Object.keys(e.fields).length) Object.assign(errors, e.fields)
+    else errors.terms = e.message
+  } finally {
+    submitting.value = false
   }
 }
 </script>
@@ -198,7 +204,7 @@ function onSubmit() {
         </label>
         <p v-if="errors.terms" class="error" role="alert">{{ errors.terms }}</p>
 
-        <button type="submit" class="btn btn-gold join">Join</button>
+        <button type="submit" class="btn btn-gold join" :disabled="submitting">Join</button>
         <p>
           Already have an account?
           <button type="button" class="link" @click="loginOpen = true">Log in</button>

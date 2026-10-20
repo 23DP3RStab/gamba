@@ -15,4 +15,10 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  server: {
+    // API calls go to the Spring Boot backend, so the browser only talks to one origin
+    proxy: {
+      '/api': 'http://localhost:8080',
+    },
+  },
 })

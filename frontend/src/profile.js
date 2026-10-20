@@ -1,48 +1,25 @@
-// Standalone profile storage. It does not depend on login (auth.js): the profile
-// is kept on its own in this browser's localStorage, password in plain text.
-// When the real login exists, replace these functions with backend calls for
-// the logged-in user; ProfileView only talks to this file.
-const PROFILE_KEY = 'gamba.profile'
+import { api } from './api'
+import { logout, setUser } from './auth'
 
-const EMPTY = { firstName: '', lastName: '', email: '', phone: '', birthDate: '' }
+// The logged-in user's profile on the backend. Every call throws an Error with
+// `status` and `fields` ({ field: message }) when it fails.
 
-function read() {
-  try {
-    return JSON.parse(localStorage.getItem(PROFILE_KEY)) ?? {}
-  } catch {
-    return {}
-  }
-}
-
-function write(profile) {
-  localStorage.setItem(PROFILE_KEY, JSON.stringify(profile))
-}
-
-// The stored profile details, or empty fields when nothing is saved yet
+// { firstName, lastName, email, phone, birthDate }
 export function getProfile() {
-  const profile = { ...EMPTY, ...read() }
-  delete profile.password
-  return profile
+  return api('/profile')
 }
 
-export function hasPassword() {
-  return Boolean(read().password)
-}
-
-export function saveProfile(details) {
-  write({ ...read(), ...details })
+export async function saveProfile(details) {
+  const saved = await api('/profile', { method: 'PUT', body: details })
+  setUser(saved) // the navbar shows the new name
+  return saved
 }
 
 export function changePassword(current, next) {
-  const profile = read()
-  if (profile.password && profile.password !== current) {
-    const error = new Error('Current password is wrong')
-    error.field = 'current'
-    throw error
-  }
-  write({ ...profile, password: next })
+  return api('/profile/password', { method: 'PUT', body: { current, next } })
 }
 
-export function deleteProfile() {
-  localStorage.removeItem(PROFILE_KEY)
+export async function deleteProfile() {
+  await api('/profile', { method: 'DELETE' })
+  logout()
 }

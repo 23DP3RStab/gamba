@@ -7,22 +7,26 @@ const router = useRouter()
 const email = ref('')
 const password = ref('')
 const error = ref('')
+const submitting = ref(false)
 const vFocus = { mounted: (el) => el.focus() }
 
 function close() {
   loginOpen.value = false
 }
 
-function onSubmit() {
+async function onSubmit() {
   if (!email.value.trim() || !password.value) {
     error.value = 'Enter your e-mail and password'
     return
   }
+  submitting.value = true
   try {
-    login(email.value.trim(), password.value)
+    await login(email.value.trim(), password.value)
     close()
   } catch (e) {
     error.value = e.message
+  } finally {
+    submitting.value = false
   }
 }
 
@@ -62,7 +66,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 
       <p v-if="error" class="error" role="alert">{{ error }}</p>
 
-      <button type="submit" class="btn btn-gold btn-block">Log in</button>
+      <button type="submit" class="btn btn-gold btn-block" :disabled="submitting">Log in</button>
 
       <p class="hint">new gamer?</p>
       <button type="button" class="btn btn-outline-gold register" @click="goRegister">
