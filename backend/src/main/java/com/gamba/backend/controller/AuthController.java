@@ -1,6 +1,8 @@
 package com.gamba.backend.controller;
 
 import com.gamba.backend.dto.ApiResponse;
+import com.gamba.backend.dto.AuthResponse;
+import com.gamba.backend.dto.LoginRequest;
 import com.gamba.backend.dto.RegisterRequest;
 import com.gamba.backend.service.AuthService;
 import jakarta.validation.Valid;
@@ -22,5 +24,11 @@ public class AuthController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(ApiResponse.ok("Registration successful. Please log in.", null));
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody LoginRequest request) {
+        AuthResponse response = authService.login(request);
+        return ResponseEntity.ok(ApiResponse.ok("Login successful", response));
     }
 }

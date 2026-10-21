@@ -1,6 +1,12 @@
 import { createApp } from 'vue'
-import RegisterView from './views/RegisterView.vue'
+import { createPinia } from 'pinia'
+import App from './App.vue'
+import router from './router'
 
-createApp(RegisterView).mount('#app')
+const app = createApp(App)
+const pinia = createPinia()
 
+app.use(pinia)
+app.use(router)
 
+app.mount('#app')
