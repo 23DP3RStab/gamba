@@ -1,6 +1,6 @@
-import './assets/main.css'
-
 import { createApp } from 'vue'
-import App from './App.vue'
+import RegisterView from './views/RegisterView.vue'
 
-createApp(App).mount('#app')
+createApp(RegisterView).mount('#app')
+
+
