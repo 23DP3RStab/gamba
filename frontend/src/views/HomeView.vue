@@ -12,13 +12,13 @@ const games = [
 <template>
   <div class="homepage">
     <header class="navbar">
-      <a href="/" class="logo">GAMBA</a>
+      <RouterLink to="/" class="logo">GAMBA</RouterLink>
 
       <nav class="nav-links" aria-label="Galvenā navigācija">
-        <a href="#games">Games</a>
+        <RouterLink :to="{ path: '/', hash: '#games' }">Games</RouterLink>
         <button type="button">Jackpots</button>
         <button type="button">Offers</button>
-        <button type="button">Wallet</button>
+        <RouterLink to="/wallet">Wallet</RouterLink>
       </nav>
 
       <div class="auth-buttons">
@@ -63,7 +63,7 @@ const games = [
     </main>
 
     <footer class="footer">
-      <a href="/" class="logo">GAMBA</a>
+      <RouterLink to="/" class="logo">GAMBA</RouterLink>
 
       <p class="footer-desc">
         Online kazino 
