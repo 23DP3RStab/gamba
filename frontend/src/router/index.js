@@ -9,11 +9,8 @@ import ComingSoonView from '../views/ComingSoonView.vue';
 import MinesGameView from '../views/MinesGameView.vue';
 import WalletView from '../views/WalletView.vue';
 
-// Game pages (and the PixiJS engine they use) only download when someone opens them
 const RouletteView = () => import('../views/RouletteView.vue');
 const PiggiesView = () => import('../views/PiggiesView.vue');
-
-// meta.fullscreen: the page brings its own full-screen layout, without the navbar
 
 const routes = [
   {
@@ -36,6 +33,7 @@ const routes = [
     path: '/lobby',
     name: 'lobby',
     component: HomeView,
+    alias: ['/games'],
     meta: { requiresAuth: true }
   },
   {
@@ -48,12 +46,14 @@ const routes = [
     path: '/roulette',
     name: 'roulette',
     component: RouletteView,
+    alias: ['/games/roulette'],
     meta: { requiresAuth: true }
   },
   {
     path: '/piggies',
     name: 'piggies',
     component: PiggiesView,
+    alias: ['/games/piggies', '/games/piggies-wolf'],
     meta: { requiresAuth: true }
   },
   {
@@ -68,6 +68,7 @@ const routes = [
   },
   {
     path: '/wallet',
+    name: 'wallet',
     component: WalletView,
     meta: { requiresAuth: true, title: 'Wallet' }
   },
@@ -81,6 +82,7 @@ const routes = [
     path: '/games/mines',
     name: 'mines',
     component: MinesGameView,
+    alias: ['/mines'],
     meta: { requiresAuth: true }
   },
   {

@@ -1,25 +1,36 @@
 <script setup>
-import { RouterView, useRoute } from 'vue-router'
-import NavBar from './components/NavBar.vue'
-
-const route = useRoute()
+import { RouterView } from 'vue-router'
 </script>
 
 <template>
-  <!-- Login, register and admin bring their own full-screen layout -->
-  <RouterView v-if="route.meta.fullscreen" />
-
-  <div v-else class="shell">
-    <NavBar />
-
-    <main>
-      <RouterView />
-    </main>
-  </div>
+  <RouterView />
 </template>
 
 <style scoped>
-main {
-  padding-top: 1.5rem;
+header {
+  line-height: 1.5;
+}
+
+.logo {
+  display: block;
+  margin: 0 auto 2rem;
+}
+
+@media (min-width: 1024px) {
+  header {
+    display: flex;
+    place-items: center;
+    padding-right: calc(var(--section-gap) / 2);
+  }
+
+  .logo {
+    margin: 0 2rem 0 0;
+  }
+
+  header .wrapper {
+    display: flex;
+    place-items: flex-start;
+    flex-wrap: wrap;
+  }
 }
 </style>
