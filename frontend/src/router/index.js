@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import LoginView from '../views/LoginView.vue';
 import RegisterView from '../views/RegisterView.vue';
+import AdminView from '../views/AdminView.vue';
 // import LobbyView from '../views/LobbyView.vue';
 
 const routes = [
@@ -28,6 +29,12 @@ const routes = [
   //   meta: { requiresAuth: true }
   // },
   {
+    path: '/admin',
+    name: 'admin',
+    component: AdminView,
+    meta: { requiresAuth: true, requiresAdmin: true }
+  },
+  {
     path: '/:pathMatch(.*)*',
     redirect: '/login'
   }
@@ -44,6 +51,10 @@ router.beforeEach((to, from, next) => {
 
   if (to.meta.requiresAuth && !isAuthenticated) {
     return next({ name: 'login' });
+  }
+
+  if (to.meta.requiresAdmin && authStore.user?.role !== 'ADMIN') {
+    return next({ name: 'lobby' });
   }
 
   if (to.meta.guestOnly && isAuthenticated) {
