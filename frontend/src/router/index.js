@@ -3,6 +3,7 @@ import { useAuthStore } from '../stores/auth';
 import LoginView from '../views/LoginView.vue';
 import RegisterView from '../views/RegisterView.vue';
 import AdminView from '../views/AdminView.vue';
+import MinesGameView from '../views/MinesGameView.vue';
 // import LobbyView from '../views/LobbyView.vue';
 
 const routes = [
@@ -33,6 +34,12 @@ const routes = [
     name: 'admin',
     component: AdminView,
     meta: { requiresAuth: true, requiresAdmin: true }
+  },
+  {
+    path: '/games/mines',
+    name: 'mines',
+    component: MinesGameView,
+    meta: { requiresAuth: true }
   },
   {
     path: '/:pathMatch(.*)*',
