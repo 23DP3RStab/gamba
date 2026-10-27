@@ -39,7 +39,6 @@ const handleLogout = () => {
         title="Open Admin Panel"
         @click="router.push('/admin')"
       >
-        <span class="crown-icon">👑</span>
         <span class="admin-label">Admin Panel</span>
       </button>
 
