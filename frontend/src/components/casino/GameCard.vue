@@ -6,8 +6,7 @@ const props = defineProps({
   category: { type: String, required: true },
   tag: { type: String, default: '' },
   badgeColor: { type: String, default: 'gold' },
-  icon: { type: String, required: true },
-  accentColor: { type: String, default: '#d4af37' },
+  image: { type: String, required: true },
   route: { type: String, required: true },
   isAvailable: { type: Boolean, default: true }
 });
@@ -27,23 +26,18 @@ const handlePlay = () => {
     :class="{ unavailable: !isAvailable }"
     @click="handlePlay"
   >
-    <div class="card-glow" :style="{ background: `radial-gradient(circle at 50% 20%, ${accentColor}25, transparent 70%)` }"></div>
+    <div class="card-art">
+      <img class="game-art" :src="image" alt="" loading="lazy" />
 
-    <div class="card-top">
-      <span v-if="tag" class="tag-badge" :class="badgeColor">{{ tag }}</span>
-      <span class="category-text">{{ category }}</span>
-    </div>
-
-    <div class="visual-wrapper">
-      <div class="game-icon" :style="{ textShadow: `0 0 30px ${accentColor}80` }">
-        {{ icon }}
+      <div class="card-top">
+        <span v-if="tag" class="tag-badge" :class="badgeColor">{{ tag }}</span>
+        <span class="category-text">{{ category }}</span>
       </div>
     </div>
 
     <div class="card-bottom">
       <div class="title-info">
         <h3 class="game-title">{{ title }}</h3>
-        <span class="provider">ROYAL STUDIOS</span>
       </div>
 
       <button class="play-btn" :disabled="!isAvailable">
@@ -78,16 +72,32 @@ const handlePlay = () => {
   cursor: not-allowed;
 }
 
-.card-glow {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.8;
-  transition: opacity 0.3s;
+.card-art {
+  position: relative;
+  height: 190px;
+  overflow: hidden;
 }
 
-.game-card:hover .card-glow {
-  opacity: 1;
+/* Darkens the top of the picture so the tag and category stay readable */
+.card-art::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(9, 9, 12, 0.75) 0%, transparent 40%);
+  pointer-events: none;
+}
+
+.game-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.35s ease;
+}
+
+.game-card:hover:not(.unavailable) .game-art {
+  transform: scale(1.06);
 }
 
 .card-top {
@@ -130,25 +140,10 @@ const handlePlay = () => {
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #7d7d8a;
-}
-
-.visual-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 150px;
-  z-index: 2;
-}
-
-.game-icon {
-  font-size: 4.5rem;
-  transition: transform 0.3s ease;
-}
-
-.game-card:hover:not(.unavailable) .game-icon {
-  transform: scale(1.12);
+  color: #c8c8d0;
+  background: rgba(9, 9, 12, 0.7);
+  padding: 3px 8px;
+  border-radius: 4px;
 }
 
 .card-bottom {
@@ -172,13 +167,6 @@ const handlePlay = () => {
   font-size: 1.05rem;
   font-weight: 700;
   color: #ffffff;
-}
-
-.provider {
-  font-size: 0.65rem;
-  color: #7d7d8a;
-  letter-spacing: 0.05em;
-  margin-top: 2px;
 }
 
 .play-btn {

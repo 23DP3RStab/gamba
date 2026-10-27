@@ -184,6 +184,8 @@ function rowClass(i) {
 
 <template>
   <section class="piggies-page">
+    <RouterLink to="/lobby" class="back-btn">← Lobby</RouterLink>
+
     <header class="page-head">
       <h1 class="title">The Three Piggies</h1>
       <p class="subtitle">and the Big Bad Wolf</p>
@@ -343,6 +345,24 @@ function rowClass(i) {
   flex-direction: column;
   gap: 1.75rem;
   padding-bottom: 2rem;
+}
+
+.back-btn {
+  align-self: flex-start;
+  margin: 16px 0 0 36px;
+  display: inline-block;
+  background: transparent;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  color: #d4af37;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.back-btn:hover {
+  background: rgba(212, 175, 55, 0.15);
 }
 
 .page-head {

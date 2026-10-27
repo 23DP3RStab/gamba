@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { mount, RouterLinkStub } from '@vue/test-utils'
 import { balance, setBalance } from '../balance'
 import { POCKETS } from '../roulette'
 
@@ -32,7 +32,9 @@ beforeEach(() => {
   localStorage.clear()
   setBalance(1000)
   finishSpin = null
-  wrapper = mount(RouletteView, { global: { stubs: { RouletteWheel: RouletteWheelStub } } })
+  wrapper = mount(RouletteView, {
+    global: { stubs: { RouletteWheel: RouletteWheelStub, RouterLink: RouterLinkStub } },
+  })
 })
 
 async function betOnRed(chip) {
@@ -85,5 +87,11 @@ describe('Rulete', () => {
     expect(balance.value).toBe(1100)
     wrapper.unmount()
     expect(balance.value).toBe(1100)
+  })
+
+  it('G-15 poga "← Lobby" ved atpakaļ uz /lobby', () => {
+    const back = wrapper.findComponent(RouterLinkStub)
+    expect(back.text()).toBe('← Lobby')
+    expect(back.props('to')).toBe('/lobby')
   })
 })

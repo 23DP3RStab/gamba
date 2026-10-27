@@ -36,16 +36,16 @@ const handleLogout = () => {
       <button
         v-if="isAdmin"
         class="admin-badge-btn"
-        title="Open Admin Console"
+        title="Open Admin Panel"
         @click="router.push('/admin')"
       >
         <span class="crown-icon">👑</span>
-        <span class="admin-label">Admin Console</span>
+        <span class="admin-label">Admin Panel</span>
       </button>
 
       <div class="wallet-pill" title="Open Wallet" @click="router.push('/wallet')">
         <div class="balance-info">
-          <span class="balance-label">Treasury</span>
+          <span class="balance-label">Balance</span>
           <span class="balance-val">{{ formattedBalance }} {{ authStore.user?.currency || 'EUR' }}</span>
         </div>
         <button class="wallet-action-btn" title="Deposit / Manage Funds" @click.stop="router.push('/wallet')">

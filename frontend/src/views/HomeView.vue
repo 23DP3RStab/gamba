@@ -5,26 +5,27 @@ import GameCard from '../components/casino/GameCard.vue';
 
 const activeFilter = ref('all');
 
+// Pictures of each game, taken from the games themselves
+const art = (name) => `${import.meta.env.BASE_URL}assets/lobby/${name}.webp`;
+
 const games = [
   {
     id: 'mines',
-    title: 'Mines VIP',
+    title: 'Mines',
     category: 'Table Games',
     tag: 'POPULAR',
     badgeColor: 'gold',
-    icon: '💎',
-    accentColor: '#d4af37',
+    image: art('mines'),
     route: '/games/mines',
     isAvailable: true
   },
   {
     id: 'roulette',
-    title: 'Royal Roulette',
+    title: 'Roulette',
     category: 'Table Games',
     tag: 'HOT',
     badgeColor: 'red',
-    icon: '🎡',
-    accentColor: '#e63946',
+    image: art('roulette'),
     route: '/games/roulette',
     isAvailable: true
   },
@@ -34,8 +35,7 @@ const games = [
     category: 'Originals',
     tag: 'NEW RELEASE',
     badgeColor: 'emerald',
-    icon: '🐷',
-    accentColor: '#26a69a',
+    image: art('piggies'),
     route: '/games/piggies-wolf',
     isAvailable: true
   }
@@ -76,8 +76,7 @@ const games = [
             :category="game.category"
             :tag="game.tag"
             :badge-color="game.badgeColor"
-            :icon="game.icon"
-            :accent-color="game.accentColor"
+            :image="game.image"
             :route="game.route"
             :is-available="game.isAvailable"
           />
