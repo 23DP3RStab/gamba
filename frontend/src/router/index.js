@@ -3,8 +3,16 @@ import { useAuthStore } from '../stores/auth';
 import LoginView from '../views/LoginView.vue';
 import RegisterView from '../views/RegisterView.vue';
 import AdminView from '../views/AdminView.vue';
+import HomeView from '../views/HomeView.vue';
+import ProfileView from '../views/ProfileView.vue';
+import ComingSoonView from '../views/ComingSoonView.vue';
 import MinesGameView from '../views/MinesGameView.vue';
-// import LobbyView from '../views/LobbyView.vue';
+
+// Game pages (and the PixiJS engine they use) only download when someone opens them
+const RouletteView = () => import('../views/RouletteView.vue');
+const PiggiesView = () => import('../views/PiggiesView.vue');
+
+// meta.fullscreen: the page brings its own full-screen layout, without the navbar
 
 const routes = [
   {
@@ -15,25 +23,58 @@ const routes = [
     path: '/login',
     name: 'login',
     component: LoginView,
-    meta: { guestOnly: true }
+    meta: { guestOnly: true, fullscreen: true }
   },
   {
     path: '/register',
     name: 'register',
     component: RegisterView,
-    meta: { guestOnly: true }
+    meta: { guestOnly: true, fullscreen: true }
   },
-  // {
-  //   path: '/lobby',
-  //   name: 'lobby',
-  //   component: LobbyView,
-  //   meta: { requiresAuth: true }
-  // },
+  {
+    path: '/lobby',
+    name: 'lobby',
+    component: HomeView,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/profile',
+    name: 'profile',
+    component: ProfileView,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/roulette',
+    name: 'roulette',
+    component: RouletteView,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/piggies',
+    name: 'piggies',
+    component: PiggiesView,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/jackpots',
+    component: ComingSoonView,
+    meta: { requiresAuth: true, title: 'Jackpots' }
+  },
+  {
+    path: '/offers',
+    component: ComingSoonView,
+    meta: { requiresAuth: true, title: 'Offers' }
+  },
+  {
+    path: '/wallet',
+    component: ComingSoonView,
+    meta: { requiresAuth: true, title: 'Wallet' }
+  },
   {
     path: '/admin',
     name: 'admin',
     component: AdminView,
-    meta: { requiresAuth: true, requiresAdmin: true }
+    meta: { requiresAuth: true, requiresAdmin: true, fullscreen: true }
   },
   {
     path: '/games/mines',

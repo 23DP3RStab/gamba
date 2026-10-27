@@ -6,6 +6,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Entity
@@ -38,6 +39,19 @@ public class User {
     @Column(name = "is_active", nullable = false)
     @Builder.Default
     private boolean active = true;
+
+    // Profile details, empty until the user fills them in on the profile page
+    @Column(name = "first_name", length = 30)
+    private String firstName;
+
+    @Column(name = "last_name", length = 30)
+    private String lastName;
+
+    @Column(name = "birth_date")
+    private LocalDate birthDate;
+
+    @Column(length = 8)
+    private String phone;
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Wallet wallet;
