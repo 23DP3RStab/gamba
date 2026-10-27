@@ -2,18 +2,18 @@
 import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { getProfile, saveProfile, changePassword, deleteProfile } from '../profile'
-import { loginOpen, logout } from '../auth'
+import { useAuthStore } from '../stores/auth'
 import { rules } from '../validation'
 
 const router = useRouter()
+const authStore = useAuthStore()
 const loading = ref(true)
 
-// A 401 means the session is over (token expired or account gone): log in again
+// A 401/403 means the session is over (token expired or account gone): log in again
 function sessionEnded(e) {
-  if (e.status !== 401) return false
-  logout()
-  loginOpen.value = true
-  router.push('/')
+  if (e.status !== 401 && e.status !== 403) return false
+  authStore.logout()
+  router.push('/login')
   return true
 }
 
@@ -29,9 +29,14 @@ const details = reactive({ firstName: '', lastName: '', email: '', phone: '', bi
 const detailErrors = reactive({})
 const detailsSaved = ref(false)
 
+// Copies only the form's fields; details the user hasn't filled in yet come back as null
+function fillDetails(profile) {
+  for (const field of Object.keys(details)) details[field] = profile[field] ?? ''
+}
+
 onMounted(async () => {
   try {
-    Object.assign(details, await getProfile())
+    fillDetails(await getProfile())
   } catch (e) {
     showError(detailErrors, e)
   } finally {
@@ -60,7 +65,7 @@ async function saveDetails() {
       phone: details.phone,
       birthDate: details.birthDate,
     })
-    Object.assign(details, saved)
+    fillDetails(saved)
     detailsSaved.value = true
   } catch (e) {
     showError(detailErrors, e)
@@ -100,7 +105,7 @@ async function savePassword() {
   }
 }
 
-// Delete profile: removes the account, logs out and goes to the home page
+// Delete profile: removes the account, logs out and goes to the login page
 const confirmingDelete = ref(false)
 const deleteError = ref('')
 
@@ -108,7 +113,7 @@ async function removeProfile() {
   deleteError.value = ''
   try {
     await deleteProfile()
-    router.push('/')
+    router.push('/login')
   } catch (e) {
     if (!sessionEnded(e)) deleteError.value = e.message
   }

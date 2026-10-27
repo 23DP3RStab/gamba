@@ -1,6 +1,15 @@
 // Field rules shared by the register and profile forms.
 // Each rule takes the field value and returns an error message, or '' when valid.
 
+const MIN_AGE = 18
+
+// Local date as 'YYYY-MM-DD', the same format a date input gives, so dates
+// compare as plain strings without time zone shifts
+function isoDate(year, month, day) {
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${String(year).padStart(4, '0')}-${pad(month)}-${pad(day)}`
+}
+
 function nameRule(label) {
   return (v) => {
     if (!v.trim()) return `${label} is required`
@@ -14,7 +23,11 @@ export const rules = {
   lastName: nameRule('Last name'),
   birthDate: (v) => {
     if (!v) return 'Date of birth is required'
-    if (new Date(v) > new Date()) return 'Date of birth cannot be in the future'
+    const now = new Date()
+    const [year, month, day] = [now.getFullYear(), now.getMonth() + 1, now.getDate()]
+    if (v > isoDate(year, month, day)) return 'Date of birth cannot be in the future'
+    // Born on or before this day MIN_AGE years ago (29 Feb birthdays turn 18 on 1 Mar)
+    if (v > isoDate(year - MIN_AGE, month, day)) return `You must be at least ${MIN_AGE} years old`
     return ''
   },
   email: (v) => {
@@ -24,8 +37,14 @@ export const rules = {
     return ''
   },
   phone: (v) => (/^\d{8}$/.test(v) ? '' : 'Phone number must be 8 digits'),
+  // The same rule as the backend's RegisterRequest and PasswordRequest
   password: (v) =>
-    v.length >= 8 && /[a-z]/.test(v) && /[A-Z]/.test(v) && /\d/.test(v) && /[^A-Za-z0-9]/.test(v)
+    v.length >= 8 &&
+    v.length <= 64 &&
+    /[a-z]/.test(v) &&
+    /[A-Z]/.test(v) &&
+    /\d/.test(v) &&
+    /[@#$%^&+=!]/.test(v)
       ? ''
-      : 'At least 8 characters with upper and lower case letters, a digit and a symbol',
+      : '8–64 characters with upper and lower case letters, a digit and one of @#$%^&+=!',
 }

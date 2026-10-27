@@ -1,9 +1,11 @@
 <script setup>
-import { user } from '../auth'
+import { useAuthStore } from '../stores/auth'
+
+const authStore = useAuthStore()
 </script>
 
 <template>
-  <h1 v-if="user">Sveicianti, {{ user.firstName }}</h1>
+  <h1 v-if="authStore.user">Sveicianti, {{ authStore.user.username }}</h1>
   <h1 v-else>Jūs neesat pieteicies</h1>
 
   <div class="games">

@@ -19,7 +19,8 @@
   --color-text: #d8d8d8;
 }
 
-#app {
+/* Page frame for everything except the full-screen login, register and admin pages */
+.shell {
   max-width: 1280px;
   margin: 0 auto;
   padding: 0 2rem 2rem;

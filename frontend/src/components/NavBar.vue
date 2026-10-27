@@ -1,36 +1,36 @@
 <script setup>
 import { useRouter } from 'vue-router'
-import { user, loginOpen, logout } from '../auth'
+import { useAuthStore } from '../stores/auth'
 
 const router = useRouter()
+const authStore = useAuthStore()
 
 function onLogout() {
-  logout()
-  router.push('/')
+  authStore.logout()
+  router.push('/login')
 }
 </script>
 
 <template>
   <header class="navbar">
-    <RouterLink to="/" class="brand">GAMBA</RouterLink>
+    <RouterLink to="/lobby" class="brand">GAMBA</RouterLink>
 
     <nav class="links">
-      <RouterLink to="/">Games</RouterLink>
+      <RouterLink to="/lobby">Games</RouterLink>
       <RouterLink to="/jackpots">Jackpots</RouterLink>
       <RouterLink to="/offers">Offers</RouterLink>
       <RouterLink to="/wallet">Wallet</RouterLink>
       <RouterLink to="/profile">Profile</RouterLink>
+      <RouterLink v-if="authStore.user?.role === 'ADMIN'" to="/admin">Admin</RouterLink>
     </nav>
 
     <div class="actions">
-      <template v-if="user">
-        <span class="username">{{ user.firstName }}</span>
+      <template v-if="authStore.user">
+        <span class="username">{{ authStore.user.username }}</span>
         <button type="button" class="btn btn-outline btn-small" @click="onLogout">Log out</button>
       </template>
       <template v-else>
-        <button type="button" class="btn btn-outline btn-small" @click="loginOpen = true">
-          Log in
-        </button>
+        <RouterLink to="/login" class="btn btn-outline btn-small">Log in</RouterLink>
         <RouterLink to="/register" class="btn btn-gold btn-small">Register</RouterLink>
       </template>
     </div>

@@ -1,17 +1,21 @@
 <script setup>
+import { RouterView, useRoute } from 'vue-router'
 import NavBar from './components/NavBar.vue'
-import LoginModal from './components/LoginModal.vue'
-import { loginOpen } from './auth'
+
+const route = useRoute()
 </script>
 
 <template>
-  <NavBar />
+  <!-- Login, register and admin bring their own full-screen layout -->
+  <RouterView v-if="route.meta.fullscreen" />
 
-  <main>
-    <RouterView />
-  </main>
+  <div v-else class="shell">
+    <NavBar />
 
-  <LoginModal v-if="loginOpen" />
+    <main>
+      <RouterView />
+    </main>
+  </div>
 </template>
 
 <style scoped>

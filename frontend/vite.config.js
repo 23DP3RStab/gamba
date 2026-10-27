@@ -21,4 +21,9 @@ export default defineConfig({
       '/api': 'http://localhost:8080',
     },
   },
+
+  // Vitest: browser-like DOM with localStorage, where the app keeps its data
+  test: {
+    environment: 'jsdom',
+  },
 })

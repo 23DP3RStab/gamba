@@ -1,17 +1,17 @@
 import { api } from './api'
-import { logout, setUser } from './auth'
+import { useAuthStore } from './stores/auth'
 
 // The logged-in user's profile on the backend. Every call throws an Error with
 // `status` and `fields` ({ field: message }) when it fails.
 
-// { firstName, lastName, email, phone, birthDate }
+// { username, email, firstName, lastName, birthDate, phone }; details not filled in yet are null
 export function getProfile() {
   return api('/profile')
 }
 
 export async function saveProfile(details) {
   const saved = await api('/profile', { method: 'PUT', body: details })
-  setUser(saved) // the navbar shows the new name
+  useAuthStore().updateUser({ email: saved.email })
   return saved
 }
 
@@ -21,5 +21,5 @@ export function changePassword(current, next) {
 
 export async function deleteProfile() {
   await api('/profile', { method: 'DELETE' })
-  logout()
+  useAuthStore().logout()
 }

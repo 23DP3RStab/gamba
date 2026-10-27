@@ -1,5 +1,5 @@
 <script setup>
-import { computed, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, reactive, ref } from 'vue'
 import RouletteWheel from '../components/RouletteWheel.vue'
 import RouletteTable from '../components/RouletteTable.vue'
 import CasinoChip from '../components/CasinoChip.vue'
@@ -76,16 +76,33 @@ async function spin() {
   spinning.value = true
 
   const number = POCKETS[randomPocketIndex()]
+  const result = settle(placed, number)
+  pending = result
   await wheel.value.spinTo(number)
 
-  const result = settle(placed, number)
-  setBalance(balance.value - result.stake + result.returned)
+  settlePending()
   outcome.value = { number, ...result }
   recent.value = [number, ...recent.value].slice(0, RECENT_COUNT)
   lastBets = { ...placed }
   clearBets()
   spinning.value = false
 }
+
+// The result of the spin in progress, applied to the balance exactly once: when
+// the wheel stops, or earlier if the player leaves the page mid-spin
+let pending = null
+
+function settlePending() {
+  if (!pending) return
+  setBalance(balance.value - pending.stake + pending.returned)
+  pending = null
+}
+
+window.addEventListener('pagehide', settlePending)
+onBeforeUnmount(() => {
+  window.removeEventListener('pagehide', settlePending)
+  settlePending()
+})
 
 function resetBalance() {
   resetStoredBalance()
