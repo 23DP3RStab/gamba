@@ -158,17 +158,25 @@ const adjustBet = (multiplier) => {
   background: #141417;
   border: 1px solid rgba(197, 160, 89, 0.25);
   border-radius: 8px;
+  overflow: hidden;
 }
 
 .mines-select {
   width: 100%;
   padding: 12px 16px;
-  background: transparent;
+  background-color: #141417;
   color: #f1f1f1;
   border: none;
   outline: none;
   font-size: 0.95rem;
   cursor: pointer;
+  color-scheme: dark;
+}
+
+.mines-select option {
+  background-color: #141417;
+  color: #f1f1f1;
+  padding: 8px 12px;
 }
 
 .mines-select:disabled {
