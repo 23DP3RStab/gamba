@@ -1,7 +1,7 @@
 import { useAuthStore } from './stores/auth'
 
 // Calls to the GAMBA backend, which answers with { success, message, data }
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
 
 function apiError(status, message) {
   const error = new Error(message)

@@ -5,7 +5,7 @@ import { useAuthStore } from '../stores/auth';
 import MinesControls from '../components/mines/MinesControls.vue';
 import MinesBoard from '../components/mines/MinesBoard.vue';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 const router = useRouter();
 const authStore = useAuthStore();

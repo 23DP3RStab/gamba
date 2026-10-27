@@ -3,7 +3,7 @@ import { ref } from 'vue';
 import BaseInput from '../common/BaseInput.vue';
 import BaseButton from '../common/BaseButton.vue';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 const props = defineProps({
   user: {

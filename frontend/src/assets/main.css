@@ -16,7 +16,7 @@ input {
 
 button {
   cursor: pointer;
-@import './base.css';
+}
 
 /* GAMBA theme: always dark, gold accent */
 :root {

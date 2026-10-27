@@ -1,319 +1,194 @@
 <script setup>
+import { ref } from 'vue';
+import CasinoNavbar from '../components/layout/CasinoNavbar.vue';
+import GameCard from '../components/casino/GameCard.vue';
+
+const activeFilter = ref('all');
+
 const games = [
-  { id: 1, name: 'Wheel of Deal'},
-  { id: 2, name: 'Choker poker'},
-  { id: 3, name: 'Three piggies'},
-]
+  {
+    id: 'mines',
+    title: 'Mines VIP',
+    category: 'Table Games',
+    tag: 'POPULAR',
+    badgeColor: 'gold',
+    icon: '💎',
+    accentColor: '#d4af37',
+    route: '/games/mines',
+    isAvailable: true
+  },
+  {
+    id: 'roulette',
+    title: 'Royal Roulette',
+    category: 'Table Games',
+    tag: 'HOT',
+    badgeColor: 'red',
+    icon: '🎡',
+    accentColor: '#e63946',
+    route: '/games/roulette',
+    isAvailable: true
+  },
+  {
+    id: 'piggies-wolf',
+    title: '3 Piggies & The Wolf',
+    category: 'Originals',
+    tag: 'NEW RELEASE',
+    badgeColor: 'emerald',
+    icon: '🐷',
+    accentColor: '#26a69a',
+    route: '/games/piggies-wolf',
+    isAvailable: true
+  }
+];
 </script>
 
-
-
-
 <template>
-  <div class="homepage">
-    <header class="navbar">
-      <RouterLink to="/" class="logo">GAMBA</RouterLink>
+  <div class="home-layout">
+    <CasinoNavbar />
 
-      <nav class="nav-links" aria-label="Galvenā navigācija">
-        <RouterLink :to="{ path: '/', hash: '#games' }">Games</RouterLink>
-        <button type="button">Jackpots</button>
-        <button type="button">Offers</button>
-        <RouterLink to="/wallet">Wallet</RouterLink>
-      </nav>
-
-      <div class="auth-buttons">
-        <button type="button" class="login-button">LOG IN</button>
-        <button type="button" class="register-button">REGISTER</button>
-      </div>
-    </header>
-
-    <main>
-
-      <section class="hero">
-        <p class="hero-intro">first</p>
-        <h1>5 SPINS FREE</h1>
-        <p class="hero-intro">for new users</p>
-        <button type="button" class="hero-button">
-          PLAY NOW - WIN BIG
-        </button>
+    <main class="home-main">
+      <section class="hero-banner">
+        <div class="hero-content">
+          <div class="vip-badge">
+            <span>♦</span>
+            <span>HIGH ROLLER LOUNGE</span>
+          </div>
+          <h1 class="hero-title">WHERE FORTUNE<br /><span class="gold-gradient-text">FAVORS THE BOLD</span></h1>
+          <p class="hero-subtitle">
+            Experience provably fair originals and iconic table classics.
+          </p>
+        </div>
       </section>
 
-      <section id="games" class="games-section" aria-label="Games">   
-        <div class="game-grid">
-          <article v-for="game in games" :key="game.id" class="game-card">
+      <section class="games-section">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">Featured Games</h2>
+            <p class="section-subtitle">Pick your table and stake your claim</p>
+          </div>
+        </div>
 
-
-            <div class="game-image">
-              <span>Image pending</span>
-            </div>
-
-            <h2>{{game.name}}</h2>
-
-            <div class="game-actions">
-                <button type="button" class="play-button">
-                  PLAY NOW <span aria-hidden="true">▷</span>
-                </button>
-            </div>
-
-          </article>
-
-
+        <div class="games-grid">
+          <GameCard
+            v-for="game in games"
+            :key="game.id"
+            :title="game.title"
+            :category="game.category"
+            :tag="game.tag"
+            :badge-color="game.badgeColor"
+            :icon="game.icon"
+            :accent-color="game.accentColor"
+            :route="game.route"
+            :is-available="game.isAvailable"
+          />
         </div>
       </section>
     </main>
-
-    <footer class="footer">
-      <RouterLink to="/" class="logo">GAMBA</RouterLink>
-
-      <p class="footer-desc">
-        Online kazino 
-      </p>
-
-      <p class="footer-copyright">
-        © {{ new Date().getFullYear() }} Gamba
-
-      </p>
-    </footer>
-
-import { useAuthStore } from '../stores/auth'
-
-const authStore = useAuthStore()
-</script>
-
-<template>
-  <h1 v-if="authStore.user">Sveicianti, {{ authStore.user.username }}</h1>
-  <h1 v-else>Jūs neesat pieteicies</h1>
-
-  <div class="games">
-    <RouterLink to="/roulette" class="btn btn-gold">Play roulette</RouterLink>
-    <RouterLink to="/piggies" class="btn btn-gold">Three Piggies &amp; the Wolf</RouterLink>
   </div>
 </template>
 
 <style scoped>
-.navbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  padding: 20px 36px;
-  background: #000;
-  border-bottom: 1px solid #d99b00;
-  box-shadow: 0 8px 24px #d99b0033;
+.home-layout {
+  min-height: 100vh;
+  background: #09090c;
+  color: #f1f1f1;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-.logo {
-  color: #e5a900;
-  font-family: Georgia, serif;
-  font-size: 28px;
-  text-decoration: none;
-}
-
-.nav-links {
-  display: flex;
-  align-items: center;
-  gap: 28px;
-  
-}
-
-.nav-links a,
-.nav-links button {
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: #fff;
-  font-size: 18px;
-  text-decoration: none;
-  transition: color 0.2s ease-in-out;
-}
-
-.nav-links a:hover,
-.nav-links button:hover {
-  color: #e5a900;
-}
-
-.auth-buttons {
-  display: flex;
-  gap: 12px;
-}
-
-.auth-buttons button {
-  padding: 8px 20px;
-  border: 1px solid #e5a900;
-  border-radius: 10px;
-  font-family: Georgia, serif;
-  font-size: 12px;
-}
-
-.login-button {
-  background: transparent;
-  color: #fff;
-}
-
-.register-button {
-  background: #e5a900;
-  color: #000;
-}
-
-main {
-  width: 100%;
-}
-
-.hero{
-  padding: 43px 24px 32px;
-  text-align: center;
-  border-bottom: 1px solid #6b5000;
-}
-.hero-intro{
-  margin: 0;
-  font-family: Georgia, serif;
-}
-
-.hero h1{
-margin: 4px 0;
-color: #e5a900;
-font-size: clamp(36px, 7vw, 56px);
-font-weight: 800;
-
-}
-
-.hero-button{
-  width: 100%;
-  max-width: 320px;
-  margin-top: 30px;
-  padding: 16px 24px;
-  border: 0;
-  border-radius: 3px;
-  background: linear-gradient(110deg, #946800,#f0c60d, #d99b00);
-  background-size: 200% 200%;
-  background-position: left center;
-  color: #000;
-  cursor: pointer;
-  transition: background-position 0.5s ease-in-out;
-  font-weight: 600;
-  /* transition-duration: 5s; */
-}
-
-.hero-button:hover{
-  /* background: linear-gradient(20deg, #ffd209, #946800);
-  color: #fff; */
-  background-position: right center; 
-}
-
-.games-section {
-  max-width: 1100px;
+.home-main {
+  max-width: 1240px;
   margin: 0 auto;
-  padding: 90px 24px 64px;
-  scroll-margin-top: 24px;
+  padding: 32px 24px 64px;
 }
 
-.game-grid{
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 100px;
-}
-
-.game-card{
+.hero-banner {
+  background: radial-gradient(circle at 80% 30%, #1e1b12 0%, #111116 100%);
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  border-radius: 20px;
+  padding: 48px 40px;
+  margin-bottom: 24px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+  position: relative;
   overflow: hidden;
-  padding: 6px;
-  border: 1px solid #303030;
-  border-radius: 4px;
-  background: #202020;
-}
-.game-image {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  aspect-ratio: 16 / 9;
-  border-radius: 6px;
-  background: linear-gradient(135deg, #303030, #111);
-  color: #aaa;
-  font-size: 14px;
 }
 
-.game-card h2 {
+.vip-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: #d4af37;
+  background: rgba(212, 175, 55, 0.12);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  padding: 4px 12px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+
+.hero-title {
+  font-size: 2.4rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  line-height: 1.15;
+  margin: 0 0 12px 0;
+}
+
+.gold-gradient-text {
+  background: linear-gradient(135deg, #f5d77f 0%, #d4af37 50%, #996515 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.hero-subtitle {
+  color: #a0a0ab;
+  font-size: 1rem;
+  max-width: 520px;
   margin: 0;
-  padding: 12px 4px;
-  text-align: center;
-  font-family: Georgia, serif;
-  font-size: 18px;
-  font-weight: normal;
-  color: #fff;
+  line-height: 1.5;
 }
 
-.game-actions {
-  padding: 12px;
-  border-top: 1px solid #080808;
+.gold-val {
+  color: #d4af37;
+  font-weight: 700;
 }
 
-.play-button {
+.section-header {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  width: 100%;
-  padding: 10px;
-  border: 0;
-  border-radius: 4px;
-  background: #333;
-  color: #fff;
-  font-family: Georgia, serif;
-  transition-duration: 0.5s;
-}
-
-.play-button:hover {
-  background: #444;
-}
-
-
-
-.footer {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  padding: 32px 24px;
-  border-top: 1px solid #6b5000;
-  background: #000;
-  text-align: center;
-}
-.footer-desc,
-.footer-copyright {
-  margin: 0;
-  color: #aaa;
-  font-size: 14px;
-}
-
-
-.footer-link:hover {
-  text-decoration: underline;
-}
-
-
-
-
-
-
-
-@media (max-width: 800px) {
-  .navbar {
-    flex-wrap: wrap;
-    padding: 16px 20px;
-  }
-
-  .nav-links {
-    order: 3;
-    justify-content: center;
-    flex-wrap: wrap;
-    width: 100%;
-    gap: 20px;
-  }
-}
-</style>
-.games {
-  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 28px;
   flex-wrap: wrap;
-  gap: 1rem;
-  margin-top: 1.5rem;
+  gap: 16px;
+}
+
+.section-title {
+  margin: 0 0 4px 0;
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.section-subtitle {
+  margin: 0;
+  color: #7d7d8a;
+  font-size: 0.85rem;
+}
+
+.games-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+}
+
+@media (max-width: 768px) {
+  .hero-title {
+    font-size: 1.8rem;
+  }
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 </style>
