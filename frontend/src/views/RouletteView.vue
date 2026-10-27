@@ -3,15 +3,22 @@ import { computed, onBeforeUnmount, reactive, ref } from 'vue'
 import RouletteWheel from '../components/RouletteWheel.vue'
 import RouletteTable from '../components/RouletteTable.vue'
 import CasinoChip from '../components/CasinoChip.vue'
-import { BETS, POCKETS, colorOf, randomPocketIndex, settle } from '../roulette'
-import { formatMoney } from '../format'
-import { START_BALANCE, balance, setBalance, resetBalance as resetStoredBalance } from '../balance'
+import { BETS, colorOf, settle } from '../roulette'
+import { formatDateTime, formatMoney } from '../format'
+import { spinRoulette } from '../games'
+import { useLockout } from '../lockout'
+import { useAuthStore } from '../stores/auth'
 
 const CHIPS = [1, 5, 10, 25, 100, 500]
 const RECENT_COUNT = 12
 
-// The balance changes when a spin is settled; chips on the table are only
-// reserved against it until then.
+// The real balance. The server takes the bets, picks the number and pays out when a
+// spin starts; the page shows the new balance once the wheel stops. Chips on the
+// table are only reserved against the balance until then.
+const authStore = useAuthStore()
+const balance = computed(() => Number(authStore.user?.balance ?? 0))
+const lockedUntil = useLockout()
+
 const wheel = ref(null)
 const chip = ref(5)
 const placed = reactive({}) // { betKey: amount }
@@ -66,7 +73,7 @@ function rebet() {
 }
 
 async function spin() {
-  if (spinning.value) return
+  if (spinning.value || lockedUntil.value) return
   if (totalBet.value === 0) {
     message.value = 'Place a bet first: pick a chip, then click the table'
     return
@@ -75,26 +82,38 @@ async function spin() {
   outcome.value = null
   spinning.value = true
 
-  const number = POCKETS[randomPocketIndex()]
-  const result = settle(placed, number)
-  pending = result
+  let result
+  try {
+    result = await spinRoulette({ ...placed })
+  } catch (e) {
+    message.value = e.message
+    spinning.value = false
+    return
+  }
+  const { number } = result
+  pending = result.balance
   await wheel.value.spinTo(number)
 
   settlePending()
-  outcome.value = { number, ...result }
+  outcome.value = {
+    number,
+    stake: result.totalBet,
+    returned: result.payout,
+    winners: settle(placed, number).winners,
+  }
   recent.value = [number, ...recent.value].slice(0, RECENT_COUNT)
   lastBets = { ...placed }
   clearBets()
   spinning.value = false
 }
 
-// The result of the spin in progress, applied to the balance exactly once: when
-// the wheel stops, or earlier if the player leaves the page mid-spin
+// The balance after the spin in progress (already settled on the server), shown exactly
+// once: when the wheel stops, or earlier if the player leaves the page mid-spin
 let pending = null
 
 function settlePending() {
-  if (!pending) return
-  setBalance(balance.value - pending.stake + pending.returned)
+  if (pending === null) return
+  authStore.updateBalance(pending)
   pending = null
 }
 
@@ -103,11 +122,6 @@ onBeforeUnmount(() => {
   window.removeEventListener('pagehide', settlePending)
   settlePending()
 })
-
-function resetBalance() {
-  resetStoredBalance()
-  message.value = `Balance reset to ${formatMoney(START_BALANCE)}`
-}
 
 const placedList = computed(() =>
   Object.entries(placed).map(([key, amount]) => ({ key, amount, label: BETS.get(key).label })),
@@ -122,6 +136,10 @@ const placedList = computed(() =>
       <h1 class="title">Roulette</h1>
       <p class="subtitle">European · single zero</p>
     </header>
+
+    <p v-if="lockedUntil" class="lockout" role="alert">
+      Your account is locked until {{ formatDateTime(lockedUntil) }}. You can't play until then.
+    </p>
 
     <div class="stage">
       <div class="wheel-area">
@@ -170,15 +188,6 @@ const placedList = computed(() =>
           </ol>
           <p v-else class="muted small">No spins yet</p>
         </div>
-
-        <button
-          v-if="available < CHIPS[0] && totalBet === 0 && !spinning"
-          type="button"
-          class="btn btn-outline-gold"
-          @click="resetBalance"
-        >
-          Reset balance
-        </button>
       </aside>
     </div>
 
@@ -234,7 +243,12 @@ const placedList = computed(() =>
           >
             Rebet
           </button>
-          <button type="button" class="btn btn-gold spin" :disabled="spinning" @click="spin">
+          <button
+            type="button"
+            class="btn btn-gold spin"
+            :disabled="spinning || !!lockedUntil"
+            @click="spin"
+          >
             {{ spinning ? 'Spinning…' : 'Spin' }}
           </button>
         </div>
@@ -279,6 +293,18 @@ const placedList = computed(() =>
 }
 
 .page-head {
+  text-align: center;
+}
+
+.lockout {
+  align-self: center;
+  max-width: 980px;
+  margin: 0;
+  padding: 0.75rem 1.25rem;
+  border: 1px solid #ff6b6b;
+  border-radius: 8px;
+  background: rgba(255, 107, 107, 0.1);
+  color: #ff6b6b;
   text-align: center;
 }
 

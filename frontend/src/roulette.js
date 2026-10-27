@@ -11,12 +11,6 @@ export function colorOf(n) {
   return RED.has(n) ? 'red' : 'black'
 }
 
-// Uniform random index into POCKETS
-export function randomPocketIndex() {
-  const [r] = crypto.getRandomValues(new Uint32Array(1))
-  return r % POCKETS.length
-}
-
 // --- Bets ---------------------------------------------------------------
 // Every bet covers a set of numbers. With 37 pockets the standard payout is
 // 36 / count - 1 to 1: straight 35, split 17, street/trio 11, corner/first four 8,

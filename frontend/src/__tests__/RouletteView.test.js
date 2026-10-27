@@ -1,14 +1,8 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { mount, RouterLinkStub } from '@vue/test-utils'
-import { balance, setBalance } from '../balance'
-import { POCKETS } from '../roulette'
-
-// The winning pocket is picked by the test; 32 is red, 0 is green
-let pocket = 0
-vi.mock('../roulette', async (importOriginal) => ({
-  ...(await importOriginal()),
-  randomPocketIndex: () => POCKETS.indexOf(pocket),
-}))
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { RouterLinkStub, flushPromises, mount } from '@vue/test-utils'
+import RouletteView from '../views/RouletteView.vue'
+import RouletteTable from '../components/RouletteTable.vue'
+import { fakeBackend, filledIn, logIn } from './fakeBackend'
 
 // The PixiJS wheel is replaced by a stub whose spin ends only when the test says so
 let finishSpin
@@ -21,21 +15,30 @@ const RouletteWheelStub = {
   },
 }
 
-const { default: RouletteView } = await import('../views/RouletteView.vue')
-const { default: RouletteTable } = await import('../components/RouletteTable.vue')
-
 const button = (wrapper, text) => wrapper.findAll('button').find((b) => b.text() === text)
 const message = (wrapper) => wrapper.find('.message').text()
 
-let wrapper
-beforeEach(() => {
-  localStorage.clear()
-  setBalance(1000)
-  finishSpin = null
-  wrapper = mount(RouletteView, {
+async function mountRoulette() {
+  const wrapper = mount(RouletteView, {
     global: { stubs: { RouletteWheel: RouletteWheelStub, RouterLink: RouterLinkStub } },
   })
+  await flushPromises()
+  return wrapper
+}
+
+// The real balance lives on the server and in the auth store; both start at 1000 €
+let authStore
+let server
+let wrapper
+beforeEach(async () => {
+  localStorage.clear()
+  authStore = logIn()
+  authStore.updateBalance(1000)
+  server = fakeBackend(filledIn, { balance: 1000 })
+  finishSpin = null
+  wrapper = await mountRoulette()
 })
+afterEach(() => vi.unstubAllGlobals())
 
 async function betOnRed(chip) {
   await wrapper.find(`[aria-label="${chip} chip"]`).trigger('click')
@@ -43,55 +46,75 @@ async function betOnRed(chip) {
   await wrapper.vm.$nextTick()
 }
 
+async function spin() {
+  await button(wrapper, 'Spin').trigger('click')
+  await flushPromises()
+}
+
 describe('Rulete', () => {
   it('G-10 griešana bez likmes → paziņojums, bilance nemainās', async () => {
-    await button(wrapper, 'Spin').trigger('click')
+    await spin()
     expect(message(wrapper)).toBe('Place a bet first: pick a chip, then click the table')
-    expect(balance.value).toBe(1000)
+    expect(server.balance).toBe(1000)
   })
 
   it('G-11 žetons lielāks par pieejamo bilanci → paziņojums, likme netiek likta', async () => {
-    setBalance(100)
+    authStore.updateBalance(100)
     await betOnRed(500)
     expect(message(wrapper)).toMatch(/^Not enough balance for a 500,00\s€ chip$/)
-    expect(button(wrapper, 'Spin').exists()).toBe(true)
-    await button(wrapper, 'Spin').trigger('click')
+    await spin()
     expect(message(wrapper)).toBe('Place a bet first: pick a chip, then click the table')
   })
 
-  it('G-12 uzvara: 100 € uz sarkano, uzkrīt 32 → bilance 1100 €', async () => {
-    pocket = 32
+  it('G-12 uzvara: 100 € uz sarkano, uzkrīt 32 → bilance 1100 €, kad rats apstājas', async () => {
+    server.number = 32
     await betOnRed(100)
-    await button(wrapper, 'Spin').trigger('click')
-    expect(balance.value).toBe(1000) // nothing changes while the wheel spins
+    await spin()
+    expect(server.balance).toBe(1100) // the server settled the spin at once
+    expect(authStore.user.balance).toBe(1000) // the page waits for the wheel
     finishSpin()
-    await vi.waitFor(() => expect(balance.value).toBe(1100))
-    wrapper.unmount()
-    expect(balance.value).toBe(1100) // settled once, not again on leaving
+    await vi.waitFor(() => expect(authStore.user.balance).toBe(1100))
+    expect(wrapper.text()).toMatch(/You won 200,00\s€/)
   })
 
-  it('G-13 iziešana no lapas griešanas laikā → zaudējums tiek nokārtots (kļūda #4)', async () => {
-    pocket = 0
+  it('G-13 iziešana no lapas griešanas laikā → bilance tik un tā atjaunota (kļūda #4)', async () => {
+    server.number = 0
     await betOnRed(100)
-    await button(wrapper, 'Spin').trigger('click')
+    await spin()
     expect(finishSpin).toBeTypeOf('function')
     wrapper.unmount() // leave the page before the wheel stops
-    expect(balance.value).toBe(900)
+    expect(authStore.user.balance).toBe(900)
   })
 
-  it('G-14 lapas atsvaidzināšana/aizvēršana griešanas laikā (pagehide) → nokārtots', async () => {
-    pocket = 32
+  it('G-14 lapas atsvaidzināšana/aizvēršana griešanas laikā (pagehide) → atjaunota', async () => {
+    server.number = 32
     await betOnRed(100)
-    await button(wrapper, 'Spin').trigger('click')
+    await spin()
     window.dispatchEvent(new Event('pagehide'))
-    expect(balance.value).toBe(1100)
+    expect(authStore.user.balance).toBe(1100)
     wrapper.unmount()
-    expect(balance.value).toBe(1100)
+    expect(authStore.user.balance).toBe(1100)
   })
 
   it('G-15 poga "← Lobby" ved atpakaļ uz /lobby', () => {
     const back = wrapper.findComponent(RouterLinkStub)
     expect(back.text()).toBe('← Lobby')
     expect(back.props('to')).toBe('/lobby')
+  })
+
+  it('G-16 serveris atsaka (nepietiek naudas) → paziņojums, rats negriežas', async () => {
+    server.balance = 50
+    await betOnRed(100)
+    await spin()
+    expect(message(wrapper)).toBe('Insufficient balance')
+    expect(finishSpin).toBeNull()
+    expect(button(wrapper, 'Spin').attributes('disabled')).toBeUndefined()
+  })
+
+  it('G-17 pašizslēgšanās laikā → paziņojums, griezt nevar', async () => {
+    server.limits.lockedUntil = new Date(Date.now() + 86400000).toISOString()
+    wrapper = await mountRoulette()
+    expect(wrapper.text()).toContain('Your account is locked until')
+    expect(button(wrapper, 'Spin').attributes('disabled')).toBeDefined()
   })
 })

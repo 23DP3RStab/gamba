@@ -1,12 +1,19 @@
 <script setup>
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import PiggiesScene from '../components/PiggiesScene.vue'
-import CasinoChip from '../components/CasinoChip.vue'
-import { HOUSES, blowSucceeds } from '../piggies'
-import { balance, setBalance, resetBalance as resetStoredBalance, START_BALANCE } from '../balance'
-import { formatMoney } from '../format'
+import { HOUSES } from '../piggies'
+import { formatDateTime, formatMoney } from '../format'
+import { activePiggies, blowPiggies, cashOutPiggies, startPiggies } from '../games'
+import { useLockout } from '../lockout'
+import { useAuthStore } from '../stores/auth'
 
-const CHIPS = [1, 5, 10, 25, 100, 500]
+// Played on the real balance: the server takes the bet, rolls every blow and pays out;
+// the page animates the wolf and then shows what the server decided
+const authStore = useAuthStore()
+const balance = computed(() => Number(authStore.user?.balance ?? 0))
+const lockedUntil = useLockout()
+
+const MIN_BET = 0.1
 const WALK_MS = 700
 const PUFF_MS = 1600
 const FALL_MS = 1100
@@ -27,6 +34,7 @@ const houseStates = ref(HOUSES.map(() => 'standing')) // 'standing' | 'fallen' |
 const banner = ref(null) // latest moment for the scene banner
 let bannerId = 0
 const message = ref('')
+const cashing = ref(false) // a cash out is on its way to the server
 
 const playing = computed(() => phase.value === 'blowing' || phase.value === 'decide')
 const deciding = computed(() => phase.value === 'decide')
@@ -57,15 +65,18 @@ function editBet(value) {
   message.value = ''
 }
 
-const addChip = (c) => editBet(cents(betAmount.value + c))
 const halveBet = () => editBet(cents(betAmount.value / 2))
 const doubleBet = () => editBet(cents(betAmount.value * 2))
 
 async function start() {
-  if (playing.value) return
+  if (playing.value || lockedUntil.value) return
   const amount = betAmount.value
   if (amount <= 0) {
     message.value = 'Enter a bet first'
+    return
+  }
+  if (amount < MIN_BET) {
+    message.value = `The smallest bet is ${formatMoney(MIN_BET)}`
     return
   }
   if (amount > balance.value) {
@@ -74,12 +85,39 @@ async function start() {
   }
   if (phase.value !== 'betting') resetScene()
   message.value = ''
-  setBalance(cents(balance.value - amount))
+  phase.value = 'blowing'
+
+  let result
+  try {
+    result = await startPiggies(amount)
+  } catch (e) {
+    message.value = e.message
+    phase.value = 'betting'
+    return
+  }
   stake.value = amount
-  await attack(0)
+  authStore.updateBalance(result.balance) // the stake is taken; the straw house can't win yet
+  await play(0, result)
 }
 
-async function attack(index) {
+async function next() {
+  if (phase.value !== 'decide' || cashing.value) return
+  const index = level.value
+  phase.value = 'blowing'
+  let result
+  try {
+    result = await blowPiggies()
+  } catch (e) {
+    message.value = e.message
+    phase.value = 'decide'
+    return
+  }
+  await play(index, result)
+}
+
+// Walks the wolf to house `index`, huffs and puffs, then shows the server's `result`.
+// The balance only changes after the animation, so a win isn't given away early.
+async function play(index, result) {
   phase.value = 'blowing'
   if (wolfAt.value !== index) {
     wolfAt.value = index
@@ -91,7 +129,7 @@ async function attack(index) {
   await sleep(PUFF_MS)
   puffing.value = false
 
-  const fell = blowSucceeds(index)
+  const { fell } = result
   houseStates.value[index] = fell ? 'fallen' : 'held'
   const last = index === HOUSES.length - 1
   showBanner(!fell ? 'held' : last ? 'won' : 'fell', {
@@ -99,14 +137,15 @@ async function attack(index) {
     amount: stake.value * HOUSES[index].multiplier,
   })
   await sleep(FALL_MS)
+  authStore.updateBalance(result.balance)
 
   if (!fell) {
     phase.value = 'lost'
     return
   }
   level.value = index + 1
-  if (level.value === HOUSES.length) {
-    payOut('won')
+  if (result.status === 'WON') {
+    phase.value = 'won'
   } else {
     phase.value = 'decide'
     // Leaving the page mid-round banks what was already won
@@ -114,29 +153,40 @@ async function attack(index) {
   }
 }
 
-function payOut(endPhase) {
-  setBalance(cents(balance.value + current.value))
-  phase.value = endPhase
-}
-
-function cashOut() {
-  if (phase.value !== 'decide') return
-  showBanner('cashed', { amount: current.value })
-  payOut('cashed')
-}
-
-function next() {
-  if (phase.value === 'decide') attack(level.value)
+async function cashOut() {
+  if (phase.value !== 'decide' || cashing.value) return
+  cashing.value = true
+  try {
+    const result = await cashOutPiggies()
+    authStore.updateBalance(result.balance)
+    showBanner('cashed', { amount: result.payout })
+    phase.value = 'cashed'
+  } catch (e) {
+    message.value = e.message
+  } finally {
+    cashing.value = false
+  }
 }
 
 function showBanner(kind, details) {
   banner.value = { id: ++bannerId, kind, ...details }
 }
 
-function resetBalance() {
-  resetStoredBalance()
-  message.value = `Balance reset to ${formatMoney(START_BALANCE)}`
-}
+// A round left unfinished (the tab was closed mid-round) carries on where it stopped
+onMounted(async () => {
+  try {
+    const game = await activePiggies()
+    if (!game || phase.value !== 'betting') return
+    bet.value = game.betAmount
+    stake.value = game.betAmount
+    level.value = game.housesDown
+    wolfAt.value = game.housesDown - 1
+    houseStates.value = HOUSES.map((_, i) => (i < game.housesDown ? 'fallen' : 'standing'))
+    phase.value = 'decide'
+  } catch {
+    // Nothing to carry on with
+  }
+})
 
 // Animated number that counts up to `source` (jumps straight down, or when motion is reduced)
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -191,6 +241,10 @@ function rowClass(i) {
       <p class="subtitle">and the Big Bad Wolf</p>
     </header>
 
+    <p v-if="lockedUntil" class="lockout" role="alert">
+      Your account is locked until {{ formatDateTime(lockedUntil) }}. You can't play until then.
+    </p>
+
     <PiggiesScene
       :house-states="houseStates"
       :round="round"
@@ -238,10 +292,20 @@ function rowClass(i) {
         <div class="card controls" :class="{ deciding }">
           <template v-if="phase === 'decide'">
             <div class="decide">
-              <button type="button" class="btn btn-gold action cash-out" @click="cashOut">
+              <button
+                type="button"
+                class="btn btn-gold action cash-out"
+                :disabled="cashing"
+                @click="cashOut"
+              >
                 Cash out {{ formatMoney(current) }}
               </button>
-              <button type="button" class="btn btn-outline-gold action" @click="next">
+              <button
+                type="button"
+                class="btn btn-outline-gold action"
+                :disabled="cashing"
+                @click="next"
+              >
                 Blow the {{ nextHouse.key }} house → {{ formatMoney(stake * nextHouse.multiplier) }}
               </button>
             </div>
@@ -253,7 +317,7 @@ function rowClass(i) {
                 <span class="stat-label">Bet (€)</span>
                 <input
                   type="number"
-                  min="0.01"
+                  min="0.10"
                   step="0.01"
                   inputmode="decimal"
                   :value="bet"
@@ -280,21 +344,12 @@ function rowClass(i) {
               </div>
             </div>
 
-            <div class="chips" aria-label="Add to bet">
-              <button
-                v-for="c in CHIPS"
-                :key="c"
-                type="button"
-                class="chip-btn"
-                :aria-label="`Add ${c} €`"
-                :disabled="playing"
-                @click="addChip(c)"
-              >
-                <CasinoChip :value="c" size="2.8rem" />
-              </button>
-            </div>
-
-            <button type="button" class="btn btn-gold action start" :disabled="playing" @click="start">
+            <button
+              type="button"
+              class="btn btn-gold action start"
+              :disabled="playing || !!lockedUntil"
+              @click="start"
+            >
               {{ playing ? 'Huffing and puffing…' : 'Huff and puff!' }}
             </button>
           </template>
@@ -325,15 +380,6 @@ function rowClass(i) {
             </li>
           </ol>
         </div>
-
-        <button
-          v-if="balance < CHIPS[0] && !playing"
-          type="button"
-          class="btn btn-outline-gold"
-          @click="resetBalance"
-        >
-          Reset balance
-        </button>
       </aside>
     </div>
   </section>
@@ -366,6 +412,18 @@ function rowClass(i) {
 }
 
 .page-head {
+  text-align: center;
+}
+
+.lockout {
+  align-self: center;
+  max-width: 980px;
+  margin: 0;
+  padding: 0.75rem 1.25rem;
+  border: 1px solid #ff6b6b;
+  border-radius: 8px;
+  background: rgba(255, 107, 107, 0.1);
+  color: #ff6b6b;
   text-align: center;
 }
 
@@ -503,27 +561,7 @@ function rowClass(i) {
   padding-inline: 0.9rem;
 }
 
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-}
-
-.chip-btn {
-  padding: 0;
-  border: none;
-  border-radius: 50%;
-  background: none;
-  cursor: pointer;
-  transition: transform 0.15s;
-}
-
-.chip-btn:hover:not(:disabled) {
-  transform: translateY(-3px);
-}
-
-.controls .btn:disabled,
-.chip-btn:disabled {
+.controls .btn:disabled {
   opacity: 0.45;
   cursor: default;
 }
@@ -629,14 +667,6 @@ function rowClass(i) {
 @media (max-width: 560px) {
   .title {
     font-size: 1.8rem;
-  }
-
-  .chips {
-    gap: 0.4rem;
-  }
-
-  .chip-btn :deep(.chip) {
-    --size: 2.4rem !important;
   }
 
   .decide {

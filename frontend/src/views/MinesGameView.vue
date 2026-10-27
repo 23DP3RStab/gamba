@@ -4,11 +4,14 @@ import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import MinesControls from '../components/mines/MinesControls.vue';
 import MinesBoard from '../components/mines/MinesBoard.vue';
+import { formatDateTime } from '../format';
+import { useLockout } from '../lockout';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 const router = useRouter();
 const authStore = useAuthStore();
+const lockedUntil = useLockout();
 
 const betAmount = ref(1.0);
 const mineCount = ref(3);
@@ -39,6 +42,7 @@ const checkActiveGame = async () => {
 };
 
 const handleStart = async () => {
+  if (lockedUntil.value) return;
   errorMessage.value = '';
   bannerMessage.value = '';
   isLoading.value = true;
@@ -170,6 +174,10 @@ onMounted(() => {
 
     <div v-if="bannerMessage" class="game-banner" :class="{ bust: isBusted, win: !isBusted }">
       {{ bannerMessage }}
+    </div>
+
+    <div v-if="lockedUntil" class="error-banner" role="alert">
+      Your account is locked until {{ formatDateTime(lockedUntil) }}. You can't play until then.
     </div>
 
     <div v-if="errorMessage" class="error-banner">

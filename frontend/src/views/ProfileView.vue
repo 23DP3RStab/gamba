@@ -1,9 +1,18 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { getProfile, saveProfile, changePassword, deleteProfile } from '../profile'
+import {
+  getProfile,
+  saveProfile,
+  changePassword,
+  deleteProfile,
+  getLimits,
+} from '../profile'
 import { useAuthStore } from '../stores/auth'
 import { rules } from '../validation'
+import GameStats from '../components/profile/GameStats.vue'
+import LossLimit from '../components/profile/LossLimit.vue'
+import SelfLockout from '../components/profile/SelfLockout.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -105,6 +114,18 @@ async function savePassword() {
   }
 }
 
+// Gambling limits and self-lockout share the limits the server sends back after each change
+const limits = ref(null)
+const limitsError = ref('')
+
+onMounted(async () => {
+  try {
+    limits.value = await getLimits()
+  } catch (e) {
+    if (!sessionEnded(e)) limitsError.value = e.message
+  }
+})
+
 // Delete profile: removes the account, logs out and goes to the login page
 const confirmingDelete = ref(false)
 const deleteError = ref('')
@@ -127,6 +148,11 @@ async function removeProfile() {
     <p v-if="loading" class="loading">Loading your profile…</p>
 
     <template v-else>
+      <section class="card">
+        <h2 class="section">Game stats</h2>
+        <GameStats @failed="sessionEnded" />
+      </section>
+
       <form class="card" novalidate @submit.prevent="saveDetails">
         <h2 class="section">Profile details</h2>
         <div class="grid">
@@ -234,6 +260,21 @@ async function removeProfile() {
           <p v-if="passwordErrors.form" class="error" role="alert">{{ passwordErrors.form }}</p>
         </div>
       </form>
+
+      <section class="card">
+        <h2 class="section">Gambling limits</h2>
+        <LossLimit v-if="limits" :limits="limits" @update="limits = $event" @failed="sessionEnded" />
+        <p v-else-if="limitsError" class="error" role="alert">{{ limitsError }}</p>
+        <p v-else class="loading">Loading…</p>
+      </section>
+
+      <section class="card">
+        <h2 class="section">Self-lockout</h2>
+        <SelfLockout v-if="limits" :limits="limits" @update="limits = $event" @failed="sessionEnded" />
+        <p v-else-if="limitsError" class="error" role="alert">{{ limitsError }}</p>
+        <p v-else class="loading">Loading…</p>
+      </section>
+
 
       <section class="card">
         <h2 class="section">Delete profile</h2>

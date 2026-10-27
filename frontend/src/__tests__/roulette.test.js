@@ -1,7 +1,5 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import { BETS, POCKETS, STRAIGHT_BETS, colorOf, payoutOf, randomPocketIndex, settle } from '../roulette'
-
-afterEach(() => vi.unstubAllGlobals())
+import { describe, expect, it } from 'vitest'
+import { BETS, POCKETS, STRAIGHT_BETS, colorOf, payoutOf, settle } from '../roulette'
 
 describe('Ruletes izmaksu koeficienti', () => {
   it.each([
@@ -53,26 +51,5 @@ describe('Ruletes rats un galds', () => {
     expect(colors.filter((c) => c === 'red')).toHaveLength(18)
     expect(colors.filter((c) => c === 'black')).toHaveLength(18)
     expect(colorOf(0)).toBe('green')
-  })
-  it.each([0, 36, 37, 2 ** 32 - 1])(
-    'G-08 nejaušā vērtība %i dod indeksu 0–36',
-    (value) => {
-      vi.stubGlobal('crypto', {
-        getRandomValues: (array) => {
-          array[0] = value
-          return array
-        },
-      })
-      const index = randomPocketIndex()
-      expect(index).toBeGreaterThanOrEqual(0)
-      expect(index).toBeLessThanOrEqual(36)
-    },
-  )
-  it('G-09 10 000 īstu griezienu paliek robežās un trāpa visās kabatās', () => {
-    const seen = new Set()
-    for (let i = 0; i < 10000; i++) seen.add(randomPocketIndex())
-    expect(Math.min(...seen)).toBe(0)
-    expect(Math.max(...seen)).toBe(36)
-    expect(seen.size).toBe(37)
   })
 })

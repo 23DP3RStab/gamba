@@ -108,3 +108,56 @@ describe('Profila skats', () => {
     expect(push).toHaveBeenCalledWith('/login')
   })
 })
+
+describe('Spēļu statistika, limiti, pašizslēgšanās, eksports', () => {
+  const lossLimitForm = () => wrapper.findAll('form')[2]
+
+  it('U-10 statistika katrai spēlei; nespēlētām "Not played yet"', async () => {
+    server.stats.mines = { played: 4, wins: 2, wagered: 45, won: 60, net: 15, biggestWin: 15 }
+    wrapper = await mountProfile()
+    const text = wrapper.text()
+    expect(text).toContain('Game stats')
+    expect(text).toMatch(/Rounds4Wins2 \(50 %\)Wagered45,00\s€Net\+15,00\s€Biggest win15,00\s€/)
+    expect(text.match(/Not played yet/g)).toHaveLength(2)
+  })
+
+  it('U-11 zemāks limits stājas spēkā uzreiz', async () => {
+    server.limits.dailyLossLimit = 50
+    wrapper = await mountProfile()
+    await lossLimitForm().find('input').setValue('20')
+    await lossLimitForm().trigger('submit')
+    await flushPromises()
+    expect(server.limits.dailyLossLimit).toBe(20)
+    expect(wrapper.text()).toContain('Limit saved')
+    expect(wrapper.text()).toMatch(/Your limit is 20,00\s€ a day/)
+  })
+
+  it('U-12 augstāks limits gaida 24 stundas', async () => {
+    server.limits.dailyLossLimit = 20
+    wrapper = await mountProfile()
+    await lossLimitForm().find('input').setValue('100')
+    await lossLimitForm().trigger('submit')
+    await flushPromises()
+    expect(server.limits.dailyLossLimit).toBe(20)
+    expect(wrapper.text()).toMatch(/Changing the limit to 100,00\s€ from/)
+    expect(wrapper.text()).toContain('The change applies from')
+  })
+
+  it('U-13 nederīgs limits → kļūda, serverim nekas netiek sūtīts', async () => {
+    await lossLimitForm().find('input').setValue('0.5')
+    await lossLimitForm().trigger('submit')
+    await flushPromises()
+    expect(errors(wrapper)).toEqual([expect.stringMatching(/^Enter a limit of at least 1,00\s€$/)])
+    expect(server.limits.dailyLossLimit).toBeNull()
+  })
+
+  it('U-14 pašizslēgšanās prasa apstiprinājumu, tad konts bloķēts', async () => {
+    await button(wrapper, '7 days').trigger('click')
+    expect(wrapper.text()).toContain("Lock your account for 7 days? This can't be undone.")
+    expect(server.limits.lockedUntil).toBeNull()
+    await button(wrapper, 'Yes, lock for 7 days').trigger('click')
+    await flushPromises()
+    expect(server.limits.lockedUntil).not.toBeNull()
+    expect(wrapper.text()).toContain('Your account is locked until')
+  })
+})
