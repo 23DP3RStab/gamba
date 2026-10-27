@@ -101,6 +101,13 @@ describe('Profila skats', () => {
     expect(push).toHaveBeenCalledWith('/login')
   })
 
+  it('U-16 poga "← Lobby" ved atpakaļ uz /lobby; virsrakstā lietotājs un bilance', () => {
+    const back = wrapper.findComponent(RouterLinkStub)
+    expect(back.text()).toBe('← Lobby')
+    expect(back.props('to')).toBe('/lobby')
+    expect(wrapper.find('.hero-subtitle').text()).toMatch(/^Signed in as janis · Balance 0,00\s€$/)
+  })
+
   it('U-09 beigusies sesija, atverot profilu → izrakstīts, uz /login', async () => {
     authStore.token = 'beidzies'
     wrapper = await mountProfile()
