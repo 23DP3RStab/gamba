@@ -14,8 +14,6 @@
     "test:wallet": "node --test tests/wallet.test.mjs"
   },
   "dependencies": {
-    "vue": "^3.5.42",
-    "vue-router": "^4.6.4"
     "pinia": "^4.1.0",
     "pixi.js": "^8.22.0",
     "vue": "^3.5.42",

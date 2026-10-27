@@ -5,7 +5,7 @@ import { useAuthStore } from '../../stores/auth';
 import BaseInput from '../common/BaseInput.vue';
 import BaseButton from '../common/BaseButton.vue';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -57,10 +57,10 @@ const handleLogin = async () => {
       })
     });
 
-    const data = await res.json();
+    const data = await res.json().catch(() => null);
 
-    if (!res.ok || !data.success) {
-      serverError.value = data.message || 'Invalid username or password.';
+    if (!res.ok || !data?.success) {
+      serverError.value = data?.message || 'Invalid username or password.';
     } else {
       authStore.setAuth(data.data);
       router.push('/lobby');

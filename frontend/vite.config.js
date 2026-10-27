@@ -20,5 +20,6 @@ export default defineConfig({
   // Vitest: browser-like DOM with localStorage, where the app keeps its data
   test: {
     environment: 'jsdom',
+    include: ['src/__tests__/**/*.test.js'],
   },
 })

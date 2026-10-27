@@ -1,25 +1,3 @@
-import { createRouter, createWebHashHistory } from 'vue-router'
-import HomeView from '../views/HomeView.vue'
-import WalletView from '../views/WalletView.vue'
-
-const router = createRouter({
-  history: createWebHashHistory(),
-
-  routes: [
-    { path: '/', component: HomeView },
-    { path: '/wallet', component: WalletView },
-  ],
-
-  scrollBehavior(to) {
-    if (to.hash) {
-      return { el: to.hash, behavior: 'smooth' }
-    }
-
-    return { top: 0 }
-  },
-})
-
-export default router
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import LoginView from '../views/LoginView.vue';
@@ -29,6 +7,7 @@ import HomeView from '../views/HomeView.vue';
 import ProfileView from '../views/ProfileView.vue';
 import ComingSoonView from '../views/ComingSoonView.vue';
 import MinesGameView from '../views/MinesGameView.vue';
+import WalletView from '../views/WalletView.vue';
 
 // Game pages (and the PixiJS engine they use) only download when someone opens them
 const RouletteView = () => import('../views/RouletteView.vue');
@@ -89,7 +68,7 @@ const routes = [
   },
   {
     path: '/wallet',
-    component: ComingSoonView,
+    component: WalletView,
     meta: { requiresAuth: true, title: 'Wallet' }
   },
   {
