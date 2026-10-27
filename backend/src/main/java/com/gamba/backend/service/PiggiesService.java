@@ -31,6 +31,7 @@ public class PiggiesService {
     private final PiggiesGameRepository piggiesGameRepository;
     private final UserRepository userRepository;
     private final WalletRepository walletRepository;
+    private final GamblingLimitService gamblingLimitService;
     private final SecureRandom secureRandom = new SecureRandom();
 
     // Each house multiplies by 1 / chance, rounded to cents the way the frontend shows it
@@ -53,6 +54,7 @@ public class PiggiesService {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        gamblingLimitService.checkCanBet(user, betAmount);
 
         Wallet wallet = user.getWallet();
         if (wallet == null || wallet.getBalance().compareTo(betAmount) < 0) {

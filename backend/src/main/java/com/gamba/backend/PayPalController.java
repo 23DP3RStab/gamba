@@ -1,5 +1,7 @@
 package com.gamba.backend;
 
+import com.gamba.backend.model.User;
+import com.gamba.backend.service.GamblingLimitService;
 import com.gamba.backend.wallet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -10,6 +12,7 @@ import java.util.Map;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -22,6 +25,7 @@ public class PayPalController {
     private final BrowserWallet browserWallet;
     private final WithdrawalLedger withdrawalLedger;
     private final WithdrawalService withdrawalService;
+    private final GamblingLimitService gamblingLimitService;
     private final String clientId;
 
     public record DepositRequest(
@@ -37,12 +41,14 @@ public class PayPalController {
 
     public PayPalController(PayPalGateway paypal, WalletLedger ledger, BrowserWallet browserWallet,
                             WithdrawalLedger withdrawalLedger, WithdrawalService withdrawalService,
+                            GamblingLimitService gamblingLimitService,
                             @Value("${paypal.client-id}") String clientId) {
         this.paypal = paypal;
         this.ledger = ledger;
         this.browserWallet = browserWallet;
         this.withdrawalLedger = withdrawalLedger;
         this.withdrawalService = withdrawalService;
+        this.gamblingLimitService = gamblingLimitService;
         this.clientId = clientId;
     }
 
@@ -88,8 +94,14 @@ public class PayPalController {
 
     @PostMapping(value = "/orders", consumes = MediaType.APPLICATION_JSON_VALUE)
     public Map<String, String> createOrder(@Valid @RequestBody DepositRequest body,
+            @AuthenticationPrincipal User user,
             HttpServletRequest request, HttpServletResponse response) {
         rejectCrossSite(request);
+        // A self-locked-out player cannot deposit until the lockout ends
+        if (user != null && gamblingLimitService.isLockedOut(user)) {
+            throw new PaymentException(HttpStatus.FORBIDDEN, "SELF_LOCKED_OUT",
+                    "Your account is locked until " + GamblingLimitService.formatWhen(user.getLockedUntil()));
+        }
         UUID walletId = browserWallet.resolve(request, response);
         UUID requestId = body.requestId() == null ? UUID.randomUUID() : body.requestId();
         // Commit a local payment intent BEFORE contacting PayPal. Retries reuse its ID.

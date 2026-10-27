@@ -5,6 +5,7 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
@@ -52,6 +53,20 @@ public class User {
 
     @Column(length = 8)
     private String phone;
+
+    // Responsible gambling: a daily loss limit (raising or removing it waits 24 hours
+    // in the pending fields) and a self-lockout that blocks betting and deposits
+    @Column(name = "daily_loss_limit", precision = 15, scale = 2)
+    private BigDecimal dailyLossLimit;
+
+    @Column(name = "pending_loss_limit", precision = 15, scale = 2)
+    private BigDecimal pendingLossLimit;
+
+    @Column(name = "pending_limit_from")
+    private Instant pendingLimitFrom;
+
+    @Column(name = "locked_until")
+    private Instant lockedUntil;
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Wallet wallet;
