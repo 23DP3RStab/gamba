@@ -38,6 +38,16 @@ const games = [
     image: art('piggies'),
     route: '/games/piggies-wolf',
     isAvailable: true
+  },
+  {
+    id: 'crash',
+    title: 'Crash',
+    category: 'Live Multiplayer',
+    tag: 'LIVE',
+    badgeColor: 'red',
+    image: art('crash'),
+    route: '/games/crash',
+    isAvailable: true
   }
 ];
 </script>

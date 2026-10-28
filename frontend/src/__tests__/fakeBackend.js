@@ -36,7 +36,8 @@ const unplayed = { played: 0, wins: 0, wagered: 0, won: 0, net: 0, biggestWin: 0
 
 // In-memory stand-in for the backend's /api/profile and /api/games endpoints, answering like
 // ApiResponse. Returns its state so tests can check what the "server" saved, and steer it:
-// `number` is where the next roulette spin lands, `blows` says whether each wolf blow topples.
+// `number` is where the next roulette spin lands, `blows` says whether each wolf blow topples,
+// `crashAt` is the Crash cash-out multiplier.
 export function fakeBackend(profile, { password = '!Janka68', takenEmails = [], balance = 0 } = {}) {
   const state = {
     profile: { ...profile },
@@ -44,10 +45,17 @@ export function fakeBackend(profile, { password = '!Janka68', takenEmails = [], 
     deleted: false,
     balance,
     limits: { ...noLimits },
-    stats: { mines: { ...unplayed }, roulette: { ...unplayed }, piggies: { ...unplayed } },
+    stats: {
+      mines: { ...unplayed },
+      roulette: { ...unplayed },
+      piggies: { ...unplayed },
+      crash: { ...unplayed },
+    },
     number: 0,
     blows: [],
     piggies: null, // the round in progress
+    crashBet: null, // the bet on the current Crash round
+    crashAt: 2,
   }
   const lockedOut = () => state.limits.lockedUntil && new Date(state.limits.lockedUntil) > new Date()
 
@@ -116,6 +124,21 @@ export function fakeBackend(profile, { password = '!Janka68', takenEmails = [], 
       const { returned } = settle(data.bets, state.number)
       state.balance += returned - totalBet
       return ok({ number: state.number, totalBet, payout: returned, balance: state.balance })
+    }
+
+    if (path === '/api/games/crash/bet' && method === 'POST') {
+      if (state.crashBet) return fail(400, 'You already have a bet on this round')
+      if (data.amount > state.balance) return fail(400, 'Insufficient balance')
+      state.balance -= data.amount
+      state.crashBet = { ...data }
+      return ok({ ...data, balance: state.balance })
+    }
+    if (path === '/api/games/crash/cashout' && method === 'POST') {
+      if (!state.crashBet) return fail(400, 'You have no bet on this round')
+      const payout = cents(state.crashBet.amount * state.crashAt)
+      state.balance += payout
+      state.crashBet = null
+      return ok({ multiplier: state.crashAt, payout, balance: state.balance })
     }
 
     const piggies = (fell) => ok({ ...state.piggies, fell, balance: state.balance })

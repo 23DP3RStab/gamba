@@ -1,6 +1,7 @@
 package com.gamba.backend.config;
 
 import com.gamba.backend.security.JwtAuthenticationFilter;
+import jakarta.servlet.DispatcherType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -40,6 +41,9 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
+                // A live stream (the Crash game) is finished on an async dispatch, where the JWT
+                // filter doesn't run again; the request itself was already checked
+                .dispatcherTypeMatchers(DispatcherType.ASYNC).permitAll()
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated()

@@ -11,6 +11,7 @@ import WalletView from '../views/WalletView.vue';
 
 const RouletteView = () => import('../views/RouletteView.vue');
 const PiggiesView = () => import('../views/PiggiesView.vue');
+const CrashView = () => import('../views/CrashView.vue');
 
 const routes = [
   {
@@ -55,6 +56,13 @@ const routes = [
     name: 'piggies',
     component: PiggiesView,
     alias: ['/games/piggies', '/games/piggies-wolf'],
+    meta: { requiresAuth: true, game: true }
+  },
+  {
+    path: '/crash',
+    name: 'crash',
+    component: CrashView,
+    alias: ['/games/crash'],
     meta: { requiresAuth: true, game: true }
   },
   {

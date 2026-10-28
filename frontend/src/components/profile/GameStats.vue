@@ -10,6 +10,7 @@ const GAMES = [
   { key: 'mines', name: 'Mines' },
   { key: 'roulette', name: 'Roulette' },
   { key: 'piggies', name: '3 Piggies & The Wolf' },
+  { key: 'crash', name: 'Crash' },
 ]
 
 const stats = ref(null)

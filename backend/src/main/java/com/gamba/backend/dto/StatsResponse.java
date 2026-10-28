@@ -9,4 +9,5 @@ public class StatsResponse {
     private GameStats mines;
     private GameStats roulette;
     private GameStats piggies;
+    private GameStats crash;
 }

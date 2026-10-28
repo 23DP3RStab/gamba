@@ -5,5 +5,7 @@ public enum TransactionType {
     WIN,
     DEPOSIT,
     WITHDRAWAL,
-    ADMIN_ADJUSTMENT
+    ADMIN_ADJUSTMENT,
+    // A Crash bet paid back because a restart cut its round short
+    REFUND
 }

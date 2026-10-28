@@ -50,6 +50,8 @@ const getTypeClass = (type) => {
       return 'badge-deposit';
     case 'WITHDRAWAL':
       return 'badge-withdraw';
+    case 'REFUND':
+      return 'badge-refund';
     default:
       return 'badge-default';
   }
@@ -218,6 +220,12 @@ const getTypeClass = (type) => {
 .badge-withdraw {
   background: rgba(255, 152, 0, 0.15);
   color: #ffb74d;
+}
+
+.badge-refund {
+  background: rgba(125, 125, 138, 0.15);
+  color: #b0b0bc;
+  border: 1px solid rgba(125, 125, 138, 0.3);
 }
 
 .amount-cell {

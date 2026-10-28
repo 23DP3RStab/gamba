@@ -28,7 +28,7 @@ beforeEach(async () => {
 })
 
 describe('Piekļuve viesim', () => {
-  it.each(['/lobby', '/profile', '/roulette', '/piggies', '/wallet', '/admin'])(
+  it.each(['/lobby', '/profile', '/roulette', '/piggies', '/crash', '/wallet', '/admin'])(
     'R-01 viesis atver %s → novirzīts uz /login',
     async (path) => {
       expect(await open(path)).toBe('/login')
@@ -47,7 +47,7 @@ describe('Piekļuve viesim', () => {
 describe('Piekļuve pieteiktam lietotājam', () => {
   beforeEach(() => logIn())
 
-  it.each(['/lobby', '/profile', '/roulette', '/piggies', '/jackpots'])(
+  it.each(['/lobby', '/profile', '/roulette', '/piggies', '/crash', '/jackpots'])(
     'R-04 lietotājs drīkst atvērt %s',
     async (path) => {
       expect(await open(path)).toBe(path)
