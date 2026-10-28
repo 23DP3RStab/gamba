@@ -8,7 +8,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['toggle-status', 'adjust-balance']);
+const emit = defineEmits(['toggle-status', 'adjust-balance', 'view-transactions']);
 
 const searchQuery = ref('');
 
@@ -67,6 +67,13 @@ const filteredUsers = computed(() => {
               </span>
             </td>
             <td class="actions-cell">
+              <button
+                class="action-btn history"
+                title="View Balance Ledger & History"
+                @click="$emit('view-transactions', user)"
+              >
+                Ledger
+              </button>
               <button
                 class="action-btn adjust"
                 title="Adjust Balance"
@@ -219,6 +226,16 @@ const filteredUsers = computed(() => {
   cursor: pointer;
   border: none;
   transition: all 0.2s;
+}
+
+.action-btn.history {
+  background: rgba(212, 175, 55, 0.1);
+  color: #d4af37;
+  border: 1px solid rgba(212, 175, 55, 0.25);
+}
+
+.action-btn.history:hover {
+  background: rgba(212, 175, 55, 0.25);
 }
 
 .action-btn.adjust {

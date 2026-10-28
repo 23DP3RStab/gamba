@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 import AdminStatsCards from '../components/admin/AdminStatsCards.vue';
 import AdminUserTable from '../components/admin/AdminUserTable.vue';
 import AdjustBalanceModal from '../components/admin/AdjustBalanceModal.vue';
+import UserTransactionsModal from '../components/admin/UserTransactionsModal.vue';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -19,6 +20,7 @@ const stats = ref({
 const users = ref([]);
 const isLoading = ref(true);
 const selectedUserForBalance = ref(null);
+const selectedUserForTransactions = ref(null);
 
 const fetchAdminData = async () => {
   isLoading.value = true;
@@ -76,6 +78,14 @@ const closeBalanceModal = () => {
   selectedUserForBalance.value = null;
 };
 
+const openTransactionsModal = (user) => {
+  selectedUserForTransactions.value = user;
+};
+
+const closeTransactionsModal = () => {
+  selectedUserForTransactions.value = null;
+};
+
 const handleUserUpdated = (updatedUser) => {
   const idx = users.value.findIndex((u) => u.id === updatedUser.id);
   if (idx !== -1) {
@@ -115,6 +125,7 @@ onMounted(() => {
         :users="users"
         @toggle-status="handleToggleStatus"
         @adjust-balance="openBalanceModal"
+        @view-transactions="openTransactionsModal"
       />
     </main>
 
@@ -123,6 +134,12 @@ onMounted(() => {
       :user="selectedUserForBalance"
       @close="closeBalanceModal"
       @updated="handleUserUpdated"
+    />
+
+    <UserTransactionsModal
+      v-if="selectedUserForTransactions"
+      :user="selectedUserForTransactions"
+      @close="closeTransactionsModal"
     />
   </div>
 </template>
@@ -140,7 +157,7 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 16px 36px;
-  background: #111115;
+  background: #111116;
   border-bottom: 1px solid rgba(212, 175, 55, 0.25);
 }
 

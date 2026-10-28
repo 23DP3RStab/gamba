@@ -3,6 +3,7 @@ package com.gamba.backend.service;
 import com.gamba.backend.dto.piggies.PiggiesGameResponse;
 import com.gamba.backend.model.PiggiesGame;
 import com.gamba.backend.model.PiggiesGameStatus;
+import com.gamba.backend.model.TransactionType;
 import com.gamba.backend.model.User;
 import com.gamba.backend.model.Wallet;
 import com.gamba.backend.repository.PiggiesGameRepository;
@@ -17,10 +18,6 @@ import java.math.RoundingMode;
 import java.security.SecureRandom;
 import java.util.UUID;
 
-// The Three Piggies and the Wolf on the real balance. The wolf tries to blow down the straw,
-// wood and brick house in turn; each house that falls multiplies the bet by 1 / its chance
-// (2×, 5×, 16.67× in total, as in frontend/src/piggies.js). If one stands, the bet is lost.
-// The server rolls every blow, the browser only animates it.
 @Service
 @RequiredArgsConstructor
 public class PiggiesService {
@@ -32,9 +29,9 @@ public class PiggiesService {
     private final UserRepository userRepository;
     private final WalletRepository walletRepository;
     private final GamblingLimitService gamblingLimitService;
+    private final WalletTransactionService walletTransactionService;
     private final SecureRandom secureRandom = new SecureRandom();
 
-    // Each house multiplies by 1 / chance, rounded to cents the way the frontend shows it
     private static BigDecimal[] multipliers() {
         BigDecimal[] result = new BigDecimal[CHANCES.length];
         double total = 1;
@@ -45,7 +42,6 @@ public class PiggiesService {
         return result;
     }
 
-    // Takes the bet and blows at the straw house straight away
     @Transactional
     public PiggiesGameResponse start(UUID userId, BigDecimal betAmount) {
         if (piggiesGameRepository.findByUserIdAndStatus(userId, PiggiesGameStatus.IN_PROGRESS).isPresent()) {
@@ -67,6 +63,16 @@ public class PiggiesService {
                 .user(user)
                 .betAmount(betAmount)
                 .build();
+
+        walletTransactionService.record(
+                user,
+                betAmount.negate(),
+                wallet.getBalance(),
+                TransactionType.BET,
+                "3 Piggies & Wolf Bet",
+                null
+        );
+
         return blow(game, wallet);
     }
 
@@ -121,6 +127,15 @@ public class PiggiesService {
         wallet.setBalance(wallet.getBalance().add(payout));
         walletRepository.save(wallet);
         piggiesGameRepository.save(game);
+
+        walletTransactionService.record(
+                game.getUser(),
+                payout,
+                wallet.getBalance(),
+                TransactionType.WIN,
+                "3 Piggies & Wolf Win (" + status.name() + " - " + MULTIPLIERS[game.getHousesDown() - 1] + "x)",
+                game.getId()
+        );
     }
 
     private PiggiesGameResponse buildResponse(PiggiesGame game, BigDecimal balance, Boolean fell) {

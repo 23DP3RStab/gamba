@@ -3,6 +3,8 @@ package com.gamba.backend.service;
 import com.gamba.backend.dto.AdminStatsDto;
 import com.gamba.backend.dto.AdminUserDto;
 import com.gamba.backend.dto.AdjustBalanceRequest;
+import com.gamba.backend.dto.TransactionDto;
+import com.gamba.backend.model.TransactionType;
 import com.gamba.backend.model.User;
 import com.gamba.backend.model.Wallet;
 import com.gamba.backend.repository.UserRepository;
@@ -22,6 +24,7 @@ public class AdminService {
 
     private final UserRepository userRepository;
     private final WalletRepository walletRepository;
+    private final WalletTransactionService walletTransactionService;
 
     @Transactional(readOnly = true)
     public AdminStatsDto getDashboardStats() {
@@ -83,7 +86,25 @@ public class AdminService {
         wallet.setBalance(newBalance);
         walletRepository.save(wallet);
 
+        String description = (request.getReason() != null && !request.getReason().trim().isEmpty())
+                ? "Admin adjustment: " + request.getReason().trim()
+                : "Admin manual balance adjustment";
+
+        walletTransactionService.record(
+                user,
+                request.getAmount(),
+                newBalance,
+                TransactionType.ADMIN_ADJUSTMENT,
+                description,
+                null
+        );
+
         return mapToAdminUserDto(user);
+    }
+
+    @Transactional(readOnly = true)
+    public List<TransactionDto> getUserTransactions(UUID userId) {
+        return walletTransactionService.getUserTransactions(userId);
     }
 
     private AdminUserDto mapToAdminUserDto(User user) {
