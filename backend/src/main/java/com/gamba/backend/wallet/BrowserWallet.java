@@ -24,26 +24,14 @@ public class BrowserWallet {
     public BrowserWallet(WalletLedger ledger) { this.ledger = ledger; }
 
     public UUID resolve(HttpServletRequest request, HttpServletResponse response) {
-        String token = null;
-        if (request.getCookies() != null) {
-            for (Cookie cookie : request.getCookies()) {
-                if (COOKIE.equals(cookie.getName()) && cookie.getValue().matches("[A-Za-z0-9_-]{43}")) {
-                    token = cookie.getValue();
-                    break;
-                }
-            }
+        var authentication = org.springframework.security.core.context.SecurityContextHolder
+                .getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof com.gamba.backend.model.User user)) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.UNAUTHORIZED, "Log in to use the wallet.");
         }
-        if (token == null) {
-            byte[] bytes = new byte[32];
-            random.nextBytes(bytes);
-            token = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-        }
-        UUID id = ledger.resolveWallet(hash(token));
-        response.addHeader(HttpHeaders.SET_COOKIE, ResponseCookie.from(COOKIE, token)
-                .httpOnly(true).secure(request.isSecure()).sameSite("Lax").path("/api")
-                .maxAge(Duration.ofDays(365)).build().toString());
-        response.setHeader(HttpHeaders.CACHE_CONTROL, "no-store");
-        return id;
+        // One payment-record wallet per account, never per browser/cookie.
+        return ledger.resolveWallet("user:" + user.getId());
     }
 
     private String hash(String token) {

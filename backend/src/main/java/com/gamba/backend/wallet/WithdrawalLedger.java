@@ -23,14 +23,16 @@ public class WithdrawalLedger {
 
     private final SandboxWalletRepository wallets;
     private final SandboxWithdrawalRepository withdrawals;
+    private final AccountBalance accountBalance;
 
-    public WithdrawalLedger(SandboxWalletRepository wallets, SandboxWithdrawalRepository withdrawals) {
-        this.wallets = wallets; this.withdrawals = withdrawals;
+    public WithdrawalLedger(SandboxWalletRepository wallets, SandboxWithdrawalRepository withdrawals, AccountBalance accountBalance) {
+        this.wallets = wallets; this.withdrawals = withdrawals; this.accountBalance = accountBalance;
     }
 
     @Transactional
     public Withdrawal reserve(UUID walletId, UUID requestId, BigDecimal amount, String email) {
-        SandboxWallet wallet = lock(walletId);
+        lock(walletId);
+        var wallet = accountBalance.locked(walletId);
         String recipient = email.trim().toLowerCase(Locale.ROOT);
         SandboxWithdrawal prior = withdrawals.findById(requestId).orElse(null);
         if (prior != null) {
@@ -47,7 +49,7 @@ public class WithdrawalLedger {
         if (wallet.getBalance().compareTo(amount) < 0) {
             throw new PaymentException(HttpStatus.BAD_REQUEST, "INSUFFICIENT_BALANCE", "Nepietiek līdzekļu.");
         }
-        wallet.reserve(amount);
+        wallet.setBalance(wallet.getBalance().subtract(amount));
         SandboxWithdrawal withdrawal = withdrawals.save(new SandboxWithdrawal(requestId, walletId, amount.setScale(2), recipient));
         withdrawals.flush();
         return snapshot(withdrawal);
@@ -61,7 +63,7 @@ public class WithdrawalLedger {
 
     @Transactional(readOnly = true)
     public List<View> recent(UUID walletId) {
-        SandboxWallet wallet = wallets.findById(walletId).orElseThrow();
+        BigDecimal accountBalanceValue = accountBalance.balance(walletId);
         String held = reserved(walletId).toPlainString();
         // Always expose unresolved payouts, even after they fall outside the recent history window.
         LinkedHashMap<UUID, SandboxWithdrawal> rows = new LinkedHashMap<>();
@@ -69,12 +71,12 @@ public class WithdrawalLedger {
                 .forEach(w -> rows.put(w.getId(), w));
         withdrawals.findTop10ByWalletIdOrderByCreatedAtDesc(walletId).forEach(w -> rows.putIfAbsent(w.getId(), w));
         return rows.values().stream()
-                .map(w -> view(w, wallet.getBalance().toPlainString(), held)).toList();
+                .map(w -> view(w, accountBalanceValue.toPlainString(), held)).toList();
     }
 
     @Transactional(readOnly = true)
     public View view(UUID walletId, UUID id) {
-        return view(owned(walletId, id), wallets.findById(walletId).orElseThrow().getBalance().toPlainString(),
+        return view(owned(walletId, id), accountBalance.balance(walletId).toPlainString(),
                 reserved(walletId).toPlainString());
     }
 
@@ -109,18 +111,20 @@ public class WithdrawalLedger {
 
     @Transactional
     public void submissionFailed(UUID walletId, UUID id, int attempt, String code, boolean definite) {
-        SandboxWallet wallet = lock(walletId); SandboxWithdrawal w = owned(walletId, id);
+        lock(walletId);
+        var wallet = accountBalance.locked(walletId); SandboxWithdrawal w = owned(walletId, id);
         if (w.getPayoutBatchId() != null || w.terminalFailure()) return;
         if (w.getSubmitAttempts() != attempt) return;
         if (definite && attempt == 1) {
-            if (!w.isFundsReleased()) wallet.add(w.getAmount());
+            if (!w.isFundsReleased()) wallet.setBalance(wallet.getBalance().add(w.getAmount()));
             w.release("FAILED", "REJECTED", code);
         } else { w.setError(code); }
     }
 
     @Transactional
     public void apply(UUID walletId, UUID id, PayoutGateway.Result result) {
-        SandboxWallet wallet = lock(walletId); SandboxWithdrawal w = owned(walletId, id);
+        lock(walletId);
+        var wallet = accountBalance.locked(walletId); SandboxWithdrawal w = owned(walletId, id);
         if (w.getPayoutBatchId() == null || !w.getPayoutBatchId().equals(result.batchId())) throw mismatch();
         if (w.getPayoutItemId() != null && result.itemId() != null && !w.getPayoutItemId().equals(result.itemId())) throw mismatch();
         // Returned/failed funds are released exactly once. Stale responses cannot undo a terminal state.
@@ -128,7 +132,7 @@ public class WithdrawalLedger {
         String state = result.status();
         if (List.of("FAILED", "DENIED", "CANCELED", "RETURNED", "REFUNDED", "REVERSED").contains(state)) {
             if (w.getStatus().equals("SUCCESS") && !List.of("RETURNED", "REFUNDED", "REVERSED").contains(state)) return;
-            if (!w.isFundsReleased()) wallet.add(w.getAmount());
+            if (!w.isFundsReleased()) wallet.setBalance(wallet.getBalance().add(w.getAmount()));
             w.update(w.getStatus(), state, result.itemId(), result.transactionId());
             w.release(List.of("RETURNED", "REFUNDED", "REVERSED").contains(state) ? "RETURNED" : "FAILED", state, null);
         } else if (state.equals("SUCCESS")) {

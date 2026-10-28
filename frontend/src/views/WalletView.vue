@@ -1,6 +1,8 @@
 <script setup>
-import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
-const isLoggedIn = true
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useAuthStore } from '../stores/auth'
+const authStore = useAuthStore()
+const isLoggedIn = computed(() => authStore.isAuthenticated)
 const activeTab = ref('deposit')
 const balance = ref('0.00')
 const reserved = ref('0.00')
@@ -41,13 +43,16 @@ function formatDate(value) {
   return new Intl.DateTimeFormat('lv-LV', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Europe/Riga' }).format(date)
 }
 async function api(path, body) {
-  if (!isLoggedIn) throw new Error('To access your wallet Log In')
+  if (!isLoggedIn.value) throw new Error('To access your wallet Log In')
   let response
   try {
     response = await fetch(`/api/paypal${path}`, {
       method: body === undefined ? 'GET' : 'POST',
       credentials: 'same-origin',
-      headers: body === undefined ? {} : { 'Content-Type': 'application/json' },
+      headers: {
+        Authorization: `Bearer ${authStore.token}`,
+        ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
+      },
       body: body === undefined ? undefined : JSON.stringify(body),
     })
   } catch {
@@ -69,6 +74,7 @@ function acceptBalance(data) {
   }
   // Display the server's decimal value. Never calculate or credit money in the browser.
   balance.value = data.balance
+  authStore.updateBalance(data.balance)
   if (typeof data.reserved === 'string' && /^\d+\.\d{2}$/.test(data.reserved)) reserved.value = data.reserved
 }
 function rememberCheckout() {
@@ -84,7 +90,7 @@ function forgetCheckout() {
   rememberCheckout()
 }
 async function refreshBalance(checkStatuses = true) {
-  if (!isLoggedIn || balanceLoading.value || withdrawalsLoading.value || busy.value) return
+  if (!isLoggedIn.value || balanceLoading.value || withdrawalsLoading.value || busy.value) return
   balanceLoading.value = true
   try {
     const data = await api('/wallet')
@@ -235,7 +241,7 @@ async function retryCapture() {
   } finally { busy.value = false }
 }
 async function submitForm() {
-  if (!isLoggedIn || busy.value || checkoutOpen.value || !walletReady.value || balanceLoading.value || withdrawalsLoading.value) return
+  if (!isLoggedIn.value || busy.value || checkoutOpen.value || !walletReady.value || balanceLoading.value || withdrawalsLoading.value) return
   error.value = ''
   message.value = ''
   const input = String(amount.value).trim()
@@ -326,7 +332,7 @@ function clearWithdrawalIntent() {
   rememberWithdrawal()
 }
 async function loadWithdrawals() {
-  if (!isLoggedIn || !walletReady.value || withdrawalsLoading.value || balanceLoading.value || busy.value) return
+  if (!isLoggedIn.value || !walletReady.value || withdrawalsLoading.value || balanceLoading.value || busy.value) return
   withdrawalsLoading.value = true
   try {
     const result = await api('/withdrawals')
@@ -382,7 +388,7 @@ async function loadDeposits() {
 function withdrawalLabel(status) {
   return { REQUESTED: 'Pending', PROCESSING: 'Processing', SUCCESS: 'Successful', FAILED: 'Failed', RETURNED: 'Returned' }[status] || status
 }
-onMounted(() => { if (isLoggedIn) return refreshBalance(false) })
+onMounted(() => { if (isLoggedIn.value) return refreshBalance(false) })
 onBeforeUnmount(() => {
   destroyed = true
   clearTimeout(notificationTimer)

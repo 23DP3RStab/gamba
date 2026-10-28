@@ -16,10 +16,12 @@ public class WalletLedger {
 
     private final SandboxWalletRepository wallets;
     private final SandboxDepositRepository deposits;
+    private final AccountBalance accountBalance;
 
-    public WalletLedger(SandboxWalletRepository wallets, SandboxDepositRepository deposits) {
+    public WalletLedger(SandboxWalletRepository wallets, SandboxDepositRepository deposits, AccountBalance accountBalance) {
         this.wallets = wallets;
         this.deposits = deposits;
+        this.accountBalance = accountBalance;
     }
 
     @Transactional
@@ -29,7 +31,7 @@ public class WalletLedger {
     }
 
     @Transactional(readOnly = true)
-    public BigDecimal balance(UUID walletId) { return wallet(walletId).getBalance(); }
+    public BigDecimal balance(UUID walletId) { return accountBalance.balance(walletId); }
 
     @Transactional
     public Deposit prepare(UUID walletId, UUID requestId, BigDecimal amount) {
@@ -70,13 +72,14 @@ public class WalletLedger {
         if (deposit.getCreditedAt() == null) {
             throw new PaymentException(HttpStatus.CONFLICT, "NOT_CREDITED", "Maksājums vēl nav ieskaitīts.");
         }
-        return receipt(deposit, wallet(walletId));
+        return receipt(deposit, accountBalance.balance(walletId));
     }
 
     /** Both updates commit together. The database row lock also protects concurrent requests. */
     @Transactional
     public Receipt credit(UUID walletId, UUID depositId, PayPalGateway.Capture verified) {
-        SandboxWallet wallet = lock(walletId);
+        lock(walletId);
+        var wallet = accountBalance.locked(walletId);
         SandboxDeposit deposit = owned(walletId, depositId);
         if (!deposit.getPaypalOrderId().equals(verified.orderId())
                 || deposit.getAmount().compareTo(verified.amount()) != 0
@@ -85,14 +88,14 @@ public class WalletLedger {
                     "PayPal maksājuma dati nesakrīt ar saglabāto pasūtījumu.");
         }
         if (deposit.getCreditedAt() == null) {
-            wallet.add(deposit.getAmount());
+            wallet.setBalance(wallet.getBalance().add(deposit.getAmount()));
             deposit.markCredited(verified.captureId());
             // Unique order/capture IDs prevent another record crediting the same provider payment.
             deposits.flush();
         } else if (!deposit.getCaptureId().equals(verified.captureId())) {
             throw new PaymentException(HttpStatus.CONFLICT, "CAPTURE_CONFLICT", "Maksājuma ID nesakrīt.");
         }
-        return receipt(deposit, wallet);
+        return receipt(deposit, wallet.getBalance());
     }
 
     private SandboxWallet lock(UUID id) {
@@ -116,8 +119,8 @@ public class WalletLedger {
                 d.getPaypalOrderId(), d.getCaptureRequestId(), d.getCaptureId(), d.getCreditedAt());
     }
 
-    private Receipt receipt(SandboxDeposit d, SandboxWallet w) {
+    private Receipt receipt(SandboxDeposit d, BigDecimal balance) {
         return new Receipt(d.getPaypalOrderId(), d.getCaptureId(), "COMPLETED",
-                d.getAmount().toPlainString(), d.getCurrency(), w.getBalance().toPlainString());
+                d.getAmount().toPlainString(), d.getCurrency(), balance.toPlainString());
     }
 }
