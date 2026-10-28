@@ -26,7 +26,7 @@ const handleLogout = () => {
       </router-link>
 
       <nav class="nav-links">
-        <router-link to="/" class="nav-link active">Games</router-link>
+        <router-link to="/" class="nav-link" :class="{ active: $route.path === '/lobby' }">Games</router-link>
         <span class="nav-link disabled">VIP Club</span>
         <span class="nav-link disabled">Promotions</span>
       </nav>
@@ -277,6 +277,13 @@ const handleLogout = () => {
   border-color: rgba(230, 57, 70, 0.4);
   background: rgba(230, 57, 70, 0.1);
 }
+
+.nav-link:hover {
+  color: #d4af37;
+  text-shadow: 0 0 10px rgba(212, 175, 55, 0.6);
+}
+
+
 
 @media (max-width: 900px) {
   .nav-links {

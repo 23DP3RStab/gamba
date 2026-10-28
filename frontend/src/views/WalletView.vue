@@ -1,6 +1,7 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useAuthStore } from '../stores/auth'
+import CasinoNavbar from '../components/layout/CasinoNavbar.vue'
 const authStore = useAuthStore()
 const isLoggedIn = computed(() => authStore.isAuthenticated)
 const activeTab = ref('deposit')
@@ -403,19 +404,7 @@ onBeforeUnmount(() => {
         <button type="button" aria-label="Close notification" @click="notification = null">×</button>
       </div>
     </Transition>
-    <header class="navbar">
-      <RouterLink to="/" class="logo">GAMBA</RouterLink>
-      <nav class="nav-links" aria-label="Main navigation">
-        <RouterLink :to="{ path: '/', hash: '#games' }">Games</RouterLink>
-        <button type="button">Jackpots</button>
-        <button type="button">Offers</button>
-        <RouterLink to="/wallet" class="current-page">Wallet</RouterLink>
-      </nav>
-      <div class="auth-buttons">
-        <button type="button" class="login-button">LOG IN</button>
-        <button type="button" class="register-button">REGISTER</button>
-      </div>
-    </header>
+    <CasinoNavbar />
     <main>
       <div class="wallet-heading">
         <h1>Wallet</h1>
@@ -886,4 +875,85 @@ button:disabled { cursor: not-allowed; opacity: 0.55; }
 .withdrawal-history li strong, .withdrawal-history li span, .withdrawal-history li small { display: block; margin-bottom: 6px; }
 .withdrawal-history li span, .withdrawal-history li small { color: #aaa; }
 .withdrawal-history .edit-button { padding-left: 0; }
+
+/* Match the homepage's charcoal-and-gold visual language. Wallet logic is unchanged. */
+.wallet-page {
+  background: #09090c;
+  color: #f1f1f1;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+.wallet-page main {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 40px 24px 72px;
+}
+.wallet-heading { margin-bottom: 28px; }
+.wallet-heading h1 {
+  color: #fff;
+  font-size: clamp(30px, 5vw, 40px);
+  font-weight: 900;
+  letter-spacing: .025em;
+}
+.wallet-heading p { color: #a0a0ab; }
+.wallet-card {
+  max-width: 520px;
+  padding: 32px;
+  border: 1px solid rgba(212,175,55,.25);
+  border-radius: 20px;
+  background: radial-gradient(circle at 90% 0%, #211d14 0%, #111116 52%, #101015 100%);
+  box-shadow: 0 20px 40px rgba(0,0,0,.45);
+}
+.balance {
+  padding: 20px 16px 24px;
+  margin-bottom: 20px;
+  border: 1px solid rgba(212,175,55,.15);
+  border-radius: 14px;
+  background: rgba(212,175,55,.045);
+}
+.balance p { color: #a0a0ab; font-weight: 700; }
+.balance strong {
+  color: #d4af37;
+  font-size: clamp(36px, 8vw, 44px);
+  font-weight: 900;
+}
+.wallet-tabs { border-bottom-color: rgba(212,175,55,.18); }
+.wallet-tabs button { color: #a0a0ab; font-weight: 700; }
+.wallet-tabs button.active, .wallet-tabs button:hover { color: #d4af37; }
+.wallet-tabs button.active { border-bottom-color: #d4af37; }
+.field label, .history-heading { color: #e9e9ed; font-weight: 700; }
+.amount-input, .email-input {
+  background: #19191f;
+  border-color: #38343a;
+  border-radius: 12px;
+}
+.amount-input:focus-within { outline-color: #d4af37; }
+.quick-amounts button {
+  background: #19191f;
+  border-color: #38343a;
+  border-radius: 12px;
+}
+.quick-amounts button:hover {
+  border-color: #d4af37;
+  background: rgba(212,175,55,.10);
+}
+.submit-button {
+  border-radius: 12px;
+  background: linear-gradient(135deg, #f5d77f 0%, #d4af37 55%, #b58b23 100%);
+  color: #111116;
+}
+.edit-button, .footer-link { color: #d4af37; }
+.email-input[readonly] { background: #15151a; }
+.field-hint, .connection-note, .sandbox-note,
+.withdrawal-history li span, .withdrawal-history li small { color: #a0a0ab; }
+.withdrawal-history { border-top-color: rgba(212,175,55,.18); }
+.withdrawal-history li { border-bottom-color: #292931; }
+.footer {
+  background: #0d0d12;
+  border-top: 1px solid rgba(212,175,55,.2);
+}
+.footer .logo { color: #d4af37; }
+@media (max-width: 480px) {
+  .wallet-page main { padding: 32px 16px 48px; }
+  .wallet-card { padding: 24px 18px; }
+}
 </style>
