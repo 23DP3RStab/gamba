@@ -1,5 +1,5 @@
 CREATE TABLE mines_games (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     bet_amount NUMERIC(15, 2) NOT NULL,
     mine_count INT NOT NULL,
