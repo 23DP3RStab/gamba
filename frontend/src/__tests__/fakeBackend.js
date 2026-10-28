@@ -80,6 +80,7 @@ export function fakeBackend(profile, { password = '!Janka68', takenEmails = [], 
       return ok(null)
     }
 
+    if (path === '/api/profile/balance') return ok({ balance: state.balance, currency: 'EUR' })
     if (path === '/api/profile/stats') return ok(state.stats)
     if (path === '/api/profile/limits' && method === 'GET') return ok({ ...state.limits })
     if (path === '/api/profile/limits' && method === 'PUT') {

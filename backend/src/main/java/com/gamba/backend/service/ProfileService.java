@@ -1,9 +1,11 @@
 package com.gamba.backend.service;
 
+import com.gamba.backend.dto.BalanceResponse;
 import com.gamba.backend.dto.PasswordRequest;
 import com.gamba.backend.dto.ProfileRequest;
 import com.gamba.backend.model.User;
 import com.gamba.backend.repository.UserRepository;
+import com.gamba.backend.repository.WalletRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -17,12 +19,20 @@ import java.util.UUID;
 public class ProfileService {
 
     private final UserRepository userRepository;
+    private final WalletRepository walletRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Transactional(readOnly = true)
     public User get(UUID userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
+    }
+
+    // Read fresh each time, so money added elsewhere (an admin, another tab) shows up
+    @Transactional(readOnly = true)
+    public BalanceResponse balance(UUID userId) {
+        return BalanceResponse.from(walletRepository.findByUserId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Wallet not found")));
     }
 
     @Transactional
