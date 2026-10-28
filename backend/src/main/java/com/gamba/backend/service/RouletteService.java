@@ -2,6 +2,7 @@ package com.gamba.backend.service;
 
 import com.gamba.backend.dto.roulette.SpinResponse;
 import com.gamba.backend.model.RouletteSpin;
+import com.gamba.backend.model.TransactionType;
 import com.gamba.backend.model.User;
 import com.gamba.backend.model.Wallet;
 import com.gamba.backend.repository.RouletteSpinRepository;
@@ -17,7 +18,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-// Roulette on the real balance: the server picks the number, the browser only animates the wheel
 @Service
 @RequiredArgsConstructor
 public class RouletteService {
@@ -28,6 +28,7 @@ public class RouletteService {
     private final UserRepository userRepository;
     private final WalletRepository walletRepository;
     private final GamblingLimitService gamblingLimitService;
+    private final WalletTransactionService walletTransactionService;
     private final SecureRandom secureRandom = new SecureRandom();
 
     @Transactional
@@ -60,10 +61,12 @@ public class RouletteService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add)
                 .setScale(2);
 
-        wallet.setBalance(wallet.getBalance().subtract(total).add(payout));
+        BigDecimal balanceAfterBet = wallet.getBalance().subtract(total);
+        BigDecimal finalBalance = balanceAfterBet.add(payout);
+        wallet.setBalance(finalBalance);
         walletRepository.save(wallet);
 
-        rouletteSpinRepository.save(RouletteSpin.builder()
+        RouletteSpin savedSpin = rouletteSpinRepository.save(RouletteSpin.builder()
                 .user(user)
                 .totalBet(total)
                 .payout(payout)
@@ -72,6 +75,28 @@ public class RouletteService {
                         .map(bet -> bet.getKey() + ":" + bet.getValue().toPlainString())
                         .collect(Collectors.joining(",")))
                 .build());
+
+        // 1. Record Bet
+        walletTransactionService.record(
+                user,
+                total.negate(),
+                balanceAfterBet,
+                TransactionType.BET,
+                "Roulette Bet (" + bets.size() + " position" + (bets.size() > 1 ? "s" : "") + ")",
+                savedSpin.getId()
+        );
+
+        // 2. Record Win (if positive payout)
+        if (payout.compareTo(BigDecimal.ZERO) > 0) {
+            walletTransactionService.record(
+                    user,
+                    payout,
+                    finalBalance,
+                    TransactionType.WIN,
+                    "Roulette Win (Winning Number: " + number + ")",
+                    savedSpin.getId()
+            );
+        }
 
         return SpinResponse.builder()
                 .number(number)

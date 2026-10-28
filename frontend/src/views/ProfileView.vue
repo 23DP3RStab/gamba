@@ -8,11 +8,40 @@ import { formatMoney } from '../format'
 import GameStats from '../components/profile/GameStats.vue'
 import LossLimit from '../components/profile/LossLimit.vue'
 import SelfLockout from '../components/profile/SelfLockout.vue'
+import BalanceHistoryTable from '../components/wallet/BalanceHistoryTable.vue'
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
 
 const router = useRouter()
 const authStore = useAuthStore()
 const loading = ref(true)
 const balance = computed(() => Number(authStore.user?.balance ?? 0))
+
+// Balance & Ledger History State
+const transactions = ref([])
+const loadingTransactions = ref(true)
+
+async function fetchTransactions() {
+  loadingTransactions.value = true
+  const token = localStorage.getItem('token')
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/wallet/transactions`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    if (res.status === 401 || res.status === 403) {
+      sessionEnded({ status: res.status })
+      return
+    }
+    const data = await res.json()
+    if (data.success) {
+      transactions.value = data.data
+    }
+  } catch (err) {
+    console.error('Failed to load transaction history:', err)
+  } finally {
+    loadingTransactions.value = false
+  }
+}
 
 // A 401/403 means the session is over (token expired or account gone): log in again
 function sessionEnded(e) {
@@ -42,6 +71,7 @@ function fillDetails(profile) {
 onMounted(async () => {
   try {
     fillDetails(await getProfile())
+    fetchTransactions()
   } catch (e) {
     showError(detailErrors, e)
   } finally {
@@ -157,9 +187,16 @@ async function removeProfile() {
       <p v-if="loading" class="loading">Loading your profile…</p>
 
       <template v-else>
+        <!-- Game Stats Section -->
         <section class="card">
           <h2 class="section">Game stats</h2>
           <GameStats @failed="sessionEnded" />
+        </section>
+
+        <!-- Balance Ledger Section -->
+        <section class="card">
+          <h2 class="section">Balance & Transaction Ledger</h2>
+          <BalanceHistoryTable :transactions="transactions" :is-loading="loadingTransactions" />
         </section>
 
         <div class="pair">
@@ -335,7 +372,6 @@ async function removeProfile() {
 </template>
 
 <style scoped>
-/* Same look as the lobby (HomeView / GameCard): dark page, gold-edged rounded cards */
 .profile-layout {
   min-height: 100vh;
   background: #09090c;
@@ -492,7 +528,6 @@ async function removeProfile() {
   margin-top: 1.25rem;
 }
 
-/* Inputs and buttons in the cards (the limit components' too) in the lobby's style */
 .card :deep(input:not([type='checkbox'])) {
   border-radius: 8px;
   border-color: rgba(255, 255, 255, 0.08);

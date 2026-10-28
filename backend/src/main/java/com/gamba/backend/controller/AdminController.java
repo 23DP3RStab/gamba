@@ -4,6 +4,7 @@ import com.gamba.backend.dto.AdminStatsDto;
 import com.gamba.backend.dto.AdminUserDto;
 import com.gamba.backend.dto.AdjustBalanceRequest;
 import com.gamba.backend.dto.ApiResponse;
+import com.gamba.backend.dto.TransactionDto;
 import com.gamba.backend.service.AdminService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +29,11 @@ public class AdminController {
     @GetMapping("/users")
     public ResponseEntity<ApiResponse<List<AdminUserDto>>> getAllUsers() {
         return ResponseEntity.ok(ApiResponse.ok("Users retrieved", adminService.getAllUsers()));
+    }
+
+    @GetMapping("/users/{id}/transactions")
+    public ResponseEntity<ApiResponse<List<TransactionDto>>> getUserTransactions(@PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.ok("User transactions retrieved", adminService.getUserTransactions(id)));
     }
 
     @PatchMapping("/users/{id}/status")

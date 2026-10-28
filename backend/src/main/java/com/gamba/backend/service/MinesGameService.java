@@ -4,6 +4,7 @@ import com.gamba.backend.dto.mines.MinesGameResponse;
 import com.gamba.backend.dto.mines.StartMinesRequest;
 import com.gamba.backend.model.MinesGame;
 import com.gamba.backend.model.MinesGameStatus;
+import com.gamba.backend.model.TransactionType;
 import com.gamba.backend.model.User;
 import com.gamba.backend.model.Wallet;
 import com.gamba.backend.repository.MinesGameRepository;
@@ -30,6 +31,7 @@ public class MinesGameService {
     private final UserRepository userRepository;
     private final WalletRepository walletRepository;
     private final GamblingLimitService gamblingLimitService;
+    private final WalletTransactionService walletTransactionService;
     private final SecureRandom secureRandom = new SecureRandom();
 
     @Transactional
@@ -70,6 +72,15 @@ public class MinesGameService {
                 .build();
 
         MinesGame saved = minesGameRepository.save(game);
+
+        walletTransactionService.record(
+                user,
+                request.getBetAmount().negate(),
+                wallet.getBalance(),
+                TransactionType.BET,
+                "Mines Bet (" + request.getMineCount() + " mines)",
+                saved.getId()
+        );
 
         return buildResponse(saved, wallet.getBalance(), false);
     }
@@ -142,6 +153,15 @@ public class MinesGameService {
         wallet.setBalance(wallet.getBalance().add(payout));
         walletRepository.save(wallet);
         minesGameRepository.save(game);
+
+        walletTransactionService.record(
+                game.getUser(),
+                payout,
+                wallet.getBalance(),
+                TransactionType.WIN,
+                "Mines Cashout (" + game.getCurrentMultiplier() + "x)",
+                game.getId()
+        );
 
         return buildResponse(game, wallet.getBalance(), true);
     }
