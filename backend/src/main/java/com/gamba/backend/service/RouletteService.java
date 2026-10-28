@@ -29,6 +29,7 @@ public class RouletteService {
     private final WalletRepository walletRepository;
     private final GamblingLimitService gamblingLimitService;
     private final WalletTransactionService walletTransactionService;
+    private final WalletLock walletLock;
     private final SecureRandom secureRandom = new SecureRandom();
 
     @Transactional
@@ -48,10 +49,9 @@ public class RouletteService {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        Wallet wallet = walletLock.lock(user);
         gamblingLimitService.checkCanBet(user, total);
-
-        Wallet wallet = user.getWallet();
-        if (wallet == null || wallet.getBalance().compareTo(total) < 0) {
+        if (wallet.getBalance().compareTo(total) < 0) {
             throw new IllegalArgumentException("Insufficient balance");
         }
 

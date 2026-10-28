@@ -25,6 +25,7 @@ public class AdminService {
     private final UserRepository userRepository;
     private final WalletRepository walletRepository;
     private final WalletTransactionService walletTransactionService;
+    private final WalletLock walletLock;
 
     @Transactional(readOnly = true)
     public AdminStatsDto getDashboardStats() {
@@ -68,7 +69,7 @@ public class AdminService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        Wallet wallet = user.getWallet();
+        Wallet wallet = user.getWallet() == null ? null : walletLock.lock(user);
         if (wallet == null) {
             wallet = Wallet.builder()
                     .user(user)
