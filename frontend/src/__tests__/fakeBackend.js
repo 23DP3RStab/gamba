@@ -34,10 +34,18 @@ const noLimits = {
 
 const unplayed = { played: 0, wins: 0, wagered: 0, won: 0, net: 0, biggestWin: 0 }
 
+// The server's Plinko payout tables, left to right
+const mirror = (half) => [...half, ...half.slice(0, -1).reverse()]
+const PLINKO = {
+  LOW: mirror([10, 3, 1.6, 1.4, 1.1, 1, 0.5]),
+  MEDIUM: mirror([33, 11, 4, 2, 1.1, 0.6, 0.3]),
+  HIGH: mirror([170, 24, 8.1, 2, 0.7, 0.2, 0.2]),
+}
+
 // In-memory stand-in for the backend's /api/profile and /api/games endpoints, answering like
 // ApiResponse. Returns its state so tests can check what the "server" saved, and steer it:
 // `number` is where the next roulette spin lands, `blows` says whether each wolf blow topples,
-// `crashAt` is the Crash cash-out multiplier.
+// `crashAt` is the Crash cash-out multiplier and `plinkoSlots` where the next Plinko balls land.
 export function fakeBackend(profile, { password = '!Janka68', takenEmails = [], balance = 0 } = {}) {
   const state = {
     profile: { ...profile },
@@ -50,12 +58,14 @@ export function fakeBackend(profile, { password = '!Janka68', takenEmails = [], 
       roulette: { ...unplayed },
       piggies: { ...unplayed },
       crash: { ...unplayed },
+      plinko: { ...unplayed },
     },
     number: 0,
     blows: [],
     piggies: null, // the round in progress
     crashBet: null, // the bet on the current Crash round
     crashAt: 2,
+    plinkoSlots: [],
   }
   const lockedOut = () => state.limits.lockedUntil && new Date(state.limits.lockedUntil) > new Date()
 
@@ -139,6 +149,17 @@ export function fakeBackend(profile, { password = '!Janka68', takenEmails = [], 
       state.balance += payout
       state.crashBet = null
       return ok({ multiplier: state.crashAt, payout, balance: state.balance })
+    }
+
+    if (path === '/api/games/plinko/tables') return ok(PLINKO)
+    if (path === '/api/games/plinko/drop' && method === 'POST') {
+      if (data.betAmount > state.balance) return fail(400, 'Insufficient balance')
+      const slot = state.plinkoSlots.shift() ?? 6
+      const multiplier = PLINKO[data.risk][slot]
+      const payout = Math.floor(data.betAmount * multiplier * 100) / 100
+      state.balance = cents(state.balance - data.betAmount + payout)
+      const path = 'R'.repeat(slot) + 'L'.repeat(12 - slot)
+      return ok({ path, slot, multiplier, payout, balance: state.balance })
     }
 
     const piggies = (fell) => ok({ ...state.piggies, fell, balance: state.balance })

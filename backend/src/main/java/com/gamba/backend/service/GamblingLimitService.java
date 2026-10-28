@@ -5,6 +5,7 @@ import com.gamba.backend.model.User;
 import com.gamba.backend.repository.CrashBetRepository;
 import com.gamba.backend.repository.MinesGameRepository;
 import com.gamba.backend.repository.PiggiesGameRepository;
+import com.gamba.backend.repository.PlinkoDropRepository;
 import com.gamba.backend.repository.RouletteSpinRepository;
 import com.gamba.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +39,7 @@ public class GamblingLimitService {
     private final RouletteSpinRepository rouletteSpinRepository;
     private final PiggiesGameRepository piggiesGameRepository;
     private final CrashBetRepository crashBetRepository;
+    private final PlinkoDropRepository plinkoDropRepository;
 
     @Transactional
     public LimitsResponse getLimits(UUID userId) {
@@ -84,7 +86,8 @@ public class GamblingLimitService {
         return minesGameRepository.lostSince(userId, since)
                 .add(rouletteSpinRepository.lostSince(userId, since))
                 .add(piggiesGameRepository.lostSince(userId, since))
-                .add(crashBetRepository.lostSince(userId, since));
+                .add(crashBetRepository.lostSince(userId, since))
+                .add(plinkoDropRepository.lostSince(userId, since));
     }
 
     private User load(UUID userId) {

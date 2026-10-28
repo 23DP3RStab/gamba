@@ -8,6 +8,7 @@ import com.gamba.backend.model.PiggiesGameStatus;
 import com.gamba.backend.repository.CrashBetRepository;
 import com.gamba.backend.repository.MinesGameRepository;
 import com.gamba.backend.repository.PiggiesGameRepository;
+import com.gamba.backend.repository.PlinkoDropRepository;
 import com.gamba.backend.repository.RouletteSpinRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,7 @@ public class StatsService {
     private final RouletteSpinRepository rouletteSpinRepository;
     private final PiggiesGameRepository piggiesGameRepository;
     private final CrashBetRepository crashBetRepository;
+    private final PlinkoDropRepository plinkoDropRepository;
 
     @Transactional(readOnly = true)
     public StatsResponse getStats(UUID userId) {
@@ -42,6 +44,9 @@ public class StatsService {
                 .crash(GameStats.of(crashBetRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
                         .filter(b -> b.getStatus() == CrashBetStatus.CASHED_OUT || b.getStatus() == CrashBetStatus.LOST)
                         .map(b -> new GameStats.Round(b.getBetAmount(), b.getPayout()))
+                        .toList()))
+                .plinko(GameStats.of(plinkoDropRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
+                        .map(d -> new GameStats.Round(d.getBetAmount(), d.getPayout()))
                         .toList()))
                 .build();
     }

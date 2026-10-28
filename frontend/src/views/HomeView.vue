@@ -48,6 +48,16 @@ const games = [
     image: art('crash'),
     route: '/games/crash',
     isAvailable: true
+  },
+  {
+    id: 'plinko',
+    title: 'Plinko',
+    category: 'Originals',
+    tag: 'NEW',
+    badgeColor: 'emerald',
+    image: art('plinko'),
+    route: '/games/plinko',
+    isAvailable: true
   }
 ];
 </script>

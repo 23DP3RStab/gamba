@@ -125,7 +125,7 @@ describe('Spēļu statistika, limiti, pašizslēgšanās, eksports', () => {
     const text = wrapper.text()
     expect(text).toContain('Game stats')
     expect(text).toMatch(/Rounds4Wins2 \(50 %\)Wagered45,00\s€Net\+15,00\s€Biggest win15,00\s€/)
-    expect(text.match(/Not played yet/g)).toHaveLength(3)
+    expect(text.match(/Not played yet/g)).toHaveLength(4)
     expect(text).toContain('Crash')
   })
 

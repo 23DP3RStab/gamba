@@ -12,6 +12,7 @@ import WalletView from '../views/WalletView.vue';
 const RouletteView = () => import('../views/RouletteView.vue');
 const PiggiesView = () => import('../views/PiggiesView.vue');
 const CrashView = () => import('../views/CrashView.vue');
+const PlinkoView = () => import('../views/PlinkoView.vue');
 
 const routes = [
   {
@@ -63,6 +64,13 @@ const routes = [
     name: 'crash',
     component: CrashView,
     alias: ['/games/crash'],
+    meta: { requiresAuth: true, game: true }
+  },
+  {
+    path: '/plinko',
+    name: 'plinko',
+    component: PlinkoView,
+    alias: ['/games/plinko'],
     meta: { requiresAuth: true, game: true }
   },
   {
