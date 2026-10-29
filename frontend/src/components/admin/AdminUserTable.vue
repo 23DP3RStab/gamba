@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue';
+import { useAuthStore } from '../../stores/auth';
 
 const props = defineProps({
   users: {
@@ -11,6 +12,7 @@ const props = defineProps({
 const emit = defineEmits(['toggle-status', 'adjust-balance', 'view-transactions']);
 
 const searchQuery = ref('');
+const authStore = useAuthStore();
 
 const filteredUsers = computed(() => {
   const query = searchQuery.value.toLowerCase().trim();
@@ -82,6 +84,7 @@ const filteredUsers = computed(() => {
                 ± Balance
               </button>
               <button
+                v-if="String(user.id) !== String(authStore.user?.id)"
                 class="action-btn"
                 :class="user.active ? 'suspend' : 'activate'"
                 @click="$emit('toggle-status', user.id)"
