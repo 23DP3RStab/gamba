@@ -11,6 +11,8 @@ import WalletView from '../views/WalletView.vue';
 
 const RouletteView = () => import('../views/RouletteView.vue');
 const PiggiesView = () => import('../views/PiggiesView.vue');
+const CrashView = () => import('../views/CrashView.vue');
+const PlinkoView = () => import('../views/PlinkoView.vue');
 
 const routes = [
   {
@@ -47,14 +49,29 @@ const routes = [
     name: 'roulette',
     component: RouletteView,
     alias: ['/games/roulette'],
-    meta: { requiresAuth: true }
+    // game: the balance isn't reloaded in the background here (see balanceSync.js)
+    meta: { requiresAuth: true, game: true }
   },
   {
     path: '/piggies',
     name: 'piggies',
     component: PiggiesView,
     alias: ['/games/piggies', '/games/piggies-wolf'],
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, game: true }
+  },
+  {
+    path: '/crash',
+    name: 'crash',
+    component: CrashView,
+    alias: ['/games/crash'],
+    meta: { requiresAuth: true, game: true }
+  },
+  {
+    path: '/plinko',
+    name: 'plinko',
+    component: PlinkoView,
+    alias: ['/games/plinko'],
+    meta: { requiresAuth: true, game: true }
   },
   {
     path: '/jackpots',
@@ -83,7 +100,7 @@ const routes = [
     name: 'mines',
     component: MinesGameView,
     alias: ['/mines'],
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, game: true }
   },
   {
     path: '/:pathMatch(.*)*',

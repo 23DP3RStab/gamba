@@ -1,5 +1,7 @@
 <script setup>
-defineProps({
+import { computed, ref } from 'vue';
+
+const props = defineProps({
   transactions: {
     type: Array,
     default: () => []
@@ -7,8 +9,23 @@ defineProps({
   isLoading: {
     type: Boolean,
     default: false
+  },
+  // Show only the newest this many rows until "Show all" is clicked; null shows everything
+  collapsedRows: {
+    type: Number,
+    default: null
   }
 });
+
+const expanded = ref(false);
+const collapsible = computed(
+  () => props.collapsedRows !== null && props.transactions.length > props.collapsedRows
+);
+const shownTransactions = computed(() =>
+  collapsible.value && !expanded.value
+    ? props.transactions.slice(0, props.collapsedRows)
+    : props.transactions
+);
 
 const formatDate = (isoString) => {
   if (!isoString) return '-';
@@ -33,6 +50,8 @@ const getTypeClass = (type) => {
       return 'badge-deposit';
     case 'WITHDRAWAL':
       return 'badge-withdraw';
+    case 'REFUND':
+      return 'badge-refund';
     default:
       return 'badge-default';
   }
@@ -44,7 +63,7 @@ const getTypeClass = (type) => {
     <div v-if="isLoading" class="table-status">Loading ledger history...</div>
     <div v-else-if="transactions.length === 0" class="table-status">No transactions recorded yet.</div>
 
-    <div v-else class="table-wrapper">
+    <div v-else class="table-wrapper" :class="{ scroll: collapsible && expanded }">
       <table class="history-table">
         <thead>
           <tr>
@@ -56,7 +75,7 @@ const getTypeClass = (type) => {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="tx in transactions" :key="tx.id">
+          <tr v-for="tx in shownTransactions" :key="tx.id">
             <td class="date-cell">{{ formatDate(tx.createdAt) }}</td>
             <td>
               <span class="type-badge" :class="getTypeClass(tx.type)">
@@ -74,6 +93,16 @@ const getTypeClass = (type) => {
         </tbody>
       </table>
     </div>
+
+    <button
+      v-if="!isLoading && collapsible"
+      type="button"
+      class="expand-btn"
+      :aria-expanded="expanded"
+      @click="expanded = !expanded"
+    >
+      {{ expanded ? 'Show less ▴' : `Show all ${transactions.length} transactions ▾` }}
+    </button>
   </div>
 </template>
 
@@ -88,6 +117,37 @@ const getTypeClass = (type) => {
 
 .table-wrapper {
   overflow-x: auto;
+}
+
+/* Expanded: the whole history scrolls inside the box instead of stretching the page */
+.table-wrapper.scroll {
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.table-wrapper.scroll .history-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.expand-btn {
+  display: block;
+  width: 100%;
+  padding: 12px 18px;
+  border: none;
+  border-top: 1px solid rgba(212, 175, 55, 0.15);
+  background: #141419;
+  color: #d4af37;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.expand-btn:hover {
+  background: rgba(212, 175, 55, 0.12);
 }
 
 .history-table {
@@ -160,6 +220,12 @@ const getTypeClass = (type) => {
 .badge-withdraw {
   background: rgba(255, 152, 0, 0.15);
   color: #ffb74d;
+}
+
+.badge-refund {
+  background: rgba(125, 125, 138, 0.15);
+  color: #b0b0bc;
+  border: 1px solid rgba(125, 125, 138, 0.3);
 }
 
 .amount-cell {

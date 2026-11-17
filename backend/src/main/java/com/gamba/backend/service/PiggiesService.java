@@ -30,6 +30,7 @@ public class PiggiesService {
     private final WalletRepository walletRepository;
     private final GamblingLimitService gamblingLimitService;
     private final WalletTransactionService walletTransactionService;
+    private final WalletLock walletLock;
     private final SecureRandom secureRandom = new SecureRandom();
 
     private static BigDecimal[] multipliers() {
@@ -50,10 +51,9 @@ public class PiggiesService {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        Wallet wallet = walletLock.lock(user);
         gamblingLimitService.checkCanBet(user, betAmount);
-
-        Wallet wallet = user.getWallet();
-        if (wallet == null || wallet.getBalance().compareTo(betAmount) < 0) {
+        if (wallet.getBalance().compareTo(betAmount) < 0) {
             throw new IllegalArgumentException("Insufficient balance");
         }
         wallet.setBalance(wallet.getBalance().subtract(betAmount));
@@ -79,13 +79,13 @@ public class PiggiesService {
     @Transactional
     public PiggiesGameResponse blowNext(UUID userId) {
         PiggiesGame game = active(userId);
-        return blow(game, game.getUser().getWallet());
+        return blow(game, walletLock.lock(game.getUser()));
     }
 
     @Transactional
     public PiggiesGameResponse cashout(UUID userId) {
         PiggiesGame game = active(userId);
-        Wallet wallet = game.getUser().getWallet();
+        Wallet wallet = walletLock.lock(game.getUser());
         payOut(game, wallet, PiggiesGameStatus.CASHED_OUT);
         return buildResponse(game, wallet.getBalance(), null);
     }

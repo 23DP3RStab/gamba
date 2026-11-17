@@ -21,8 +21,13 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.setItem('user', JSON.stringify(user.value));
   }
 
+  // Counts balance changes, so a reload from the server that was already on its way
+  // can tell that a newer balance (from a bet or payout) arrived meanwhile (balanceSync.js)
+  const balanceVersion = ref(0);
+
   function updateBalance(newBalance) {
     if (user.value) {
+      balanceVersion.value++;
       user.value.balance = newBalance;
       localStorage.setItem('user', JSON.stringify(user.value));
     }
@@ -46,6 +51,7 @@ export const useAuthStore = defineStore('auth', () => {
     token,
     user,
     isAuthenticated,
+    balanceVersion,
     setAuth,
     updateBalance,
     updateUser,

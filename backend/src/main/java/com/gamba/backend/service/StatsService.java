@@ -2,10 +2,13 @@ package com.gamba.backend.service;
 
 import com.gamba.backend.dto.GameStats;
 import com.gamba.backend.dto.StatsResponse;
+import com.gamba.backend.model.CrashBetStatus;
 import com.gamba.backend.model.MinesGameStatus;
 import com.gamba.backend.model.PiggiesGameStatus;
+import com.gamba.backend.repository.CrashBetRepository;
 import com.gamba.backend.repository.MinesGameRepository;
 import com.gamba.backend.repository.PiggiesGameRepository;
+import com.gamba.backend.repository.PlinkoDropRepository;
 import com.gamba.backend.repository.RouletteSpinRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,6 +24,8 @@ public class StatsService {
     private final MinesGameRepository minesGameRepository;
     private final RouletteSpinRepository rouletteSpinRepository;
     private final PiggiesGameRepository piggiesGameRepository;
+    private final CrashBetRepository crashBetRepository;
+    private final PlinkoDropRepository plinkoDropRepository;
 
     @Transactional(readOnly = true)
     public StatsResponse getStats(UUID userId) {
@@ -35,6 +40,13 @@ public class StatsService {
                 .piggies(GameStats.of(piggiesGameRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
                         .filter(g -> g.getStatus() != PiggiesGameStatus.IN_PROGRESS)
                         .map(g -> new GameStats.Round(g.getBetAmount(), g.getPayout()))
+                        .toList()))
+                .crash(GameStats.of(crashBetRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
+                        .filter(b -> b.getStatus() == CrashBetStatus.CASHED_OUT || b.getStatus() == CrashBetStatus.LOST)
+                        .map(b -> new GameStats.Round(b.getBetAmount(), b.getPayout()))
+                        .toList()))
+                .plinko(GameStats.of(plinkoDropRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
+                        .map(d -> new GameStats.Round(d.getBetAmount(), d.getPayout()))
                         .toList()))
                 .build();
     }

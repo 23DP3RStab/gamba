@@ -32,6 +32,7 @@ public class MinesGameService {
     private final WalletRepository walletRepository;
     private final GamblingLimitService gamblingLimitService;
     private final WalletTransactionService walletTransactionService;
+    private final WalletLock walletLock;
     private final SecureRandom secureRandom = new SecureRandom();
 
     @Transactional
@@ -42,10 +43,9 @@ public class MinesGameService {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        Wallet wallet = walletLock.lock(user);
         gamblingLimitService.checkCanBet(user, request.getBetAmount());
-
-        Wallet wallet = user.getWallet();
-        if (wallet == null || wallet.getBalance().compareTo(request.getBetAmount()) < 0) {
+        if (wallet.getBalance().compareTo(request.getBetAmount()) < 0) {
             throw new IllegalArgumentException("Insufficient balance");
         }
 
@@ -96,7 +96,7 @@ public class MinesGameService {
         }
 
         List<Integer> mines = parseTileList(game.getMinePositions());
-        Wallet wallet = game.getUser().getWallet();
+        Wallet wallet = walletLock.lock(game.getUser());
 
         if (mines.contains(tileIndex)) {
             revealed.add(tileIndex);
@@ -134,7 +134,7 @@ public class MinesGameService {
             throw new IllegalArgumentException("Must reveal at least one safe tile before cashing out");
         }
 
-        Wallet wallet = game.getUser().getWallet();
+        Wallet wallet = walletLock.lock(game.getUser());
         return executeCashout(game, wallet);
     }
 

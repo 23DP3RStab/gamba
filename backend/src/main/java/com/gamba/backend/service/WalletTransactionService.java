@@ -31,7 +31,9 @@ public class WalletTransactionService {
                 .referenceId(referenceId)
                 .build();
 
-        transactionRepository.save(tx);
+        // Written straight away so each entry gets its own created_at; entries saved in one batch
+        // shared the same time, and the ledger (sorted by time) could show a WIN before its BET
+        transactionRepository.saveAndFlush(tx);
     }
 
     @Transactional(readOnly = true)

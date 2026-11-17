@@ -258,7 +258,7 @@ function rowClass(i) {
 
     <div class="lower">
       <div class="main-col">
-        <div class="card result" aria-live="polite">
+        <div v-if="phase !== 'betting'" class="card result" aria-live="polite">
           <template v-if="phase === 'blowing'">
             <p class="huff">Huff… and puff…</p>
             <p class="muted center">The wolf is at the {{ target.label.toLowerCase() }}</p>
@@ -282,10 +282,6 @@ function rowClass(i) {
           </p>
           <p v-else-if="phase === 'lost'" class="lost big">
             The {{ target.label.toLowerCase() }} held! You lost {{ formatMoney(stake) }}
-          </p>
-          <p v-else class="muted">
-            Place a bet and let the wolf huff and puff. Each house he blows down multiplies your
-            bet: ×2, ×5, then ×16,67. If one stands, you lose it. Cash out whenever you like.
           </p>
         </div>
 

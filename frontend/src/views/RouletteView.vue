@@ -158,7 +158,7 @@ const placedList = computed(() =>
           </div>
         </div>
 
-        <div class="card result" aria-live="polite">
+        <div v-if="spinning || outcome" class="card result" aria-live="polite">
           <p v-if="spinning" class="no-more">No more bets…</p>
           <template v-else-if="outcome">
             <div class="result-line">
@@ -178,7 +178,6 @@ const placedList = computed(() =>
               </li>
             </ul>
           </template>
-          <p v-else class="muted">Pick a chip, click the table to place bets, then spin.</p>
         </div>
 
         <div class="card recent">

@@ -196,7 +196,11 @@ async function removeProfile() {
         <!-- Balance Ledger Section -->
         <section class="card">
           <h2 class="section">Balance & Transaction Ledger</h2>
-          <BalanceHistoryTable :transactions="transactions" :is-loading="loadingTransactions" />
+          <BalanceHistoryTable
+            :transactions="transactions"
+            :is-loading="loadingTransactions"
+            :collapsed-rows="5"
+          />
         </section>
 
         <div class="pair">

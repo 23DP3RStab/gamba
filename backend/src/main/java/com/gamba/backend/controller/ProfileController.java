@@ -51,6 +51,12 @@ public class ProfileController {
         return ResponseEntity.ok(ApiResponse.ok("Profile deleted", null));
     }
 
+    // The page reloads this now and then, so the shown balance follows changes made elsewhere
+    @GetMapping("/balance")
+    public ResponseEntity<ApiResponse<BalanceResponse>> balance(@AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(ApiResponse.ok("Balance", profileService.balance(user.getId())));
+    }
+
     @GetMapping("/stats")
     public ResponseEntity<ApiResponse<StatsResponse>> stats(@AuthenticationPrincipal User user) {
         return ResponseEntity.ok(ApiResponse.ok("Stats retrieved", statsService.getStats(user.getId())));
